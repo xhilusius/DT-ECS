@@ -1,0 +1,24 @@
+{
+  "Version": 1,
+  "Hash": "L1mzX/tTEohx13h6vqKbkcNk+FG5FfW4RUwkK4JX2Ao=",
+  "Source": "Simulation",
+  "BasePath": "_content/Simulation",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [
+    {
+      "Identity": "D:\\Repos\\Digital-Twin\\Systems\\Data-Storage\\Data-Storage.csproj",
+      "Version": 2,
+      "Source": "Data-Storage",
+      "GetPublishAssetsTargets": "ComputeReferencedStaticWebAssetsPublishManifest;GetCurrentProjectPublishStaticWebAssetItems",
+      "AdditionalPublishProperties": "",
+      "AdditionalPublishPropertiesToRemove": "WebPublishProfileFile;TargetFramework",
+      "GetBuildAssetsTargets": "GetCurrentProjectBuildStaticWebAssetItems",
+      "AdditionalBuildProperties": "",
+      "AdditionalBuildPropertiesToRemove": "WebPublishProfileFile;TargetFramework"
+    }
+  ],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

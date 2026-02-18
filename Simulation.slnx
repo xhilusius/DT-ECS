@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/Systems/">
+    <Project Path="Systems/Data-Storage/Data-Storage.csproj" />
+    <Project Path="Systems/Simulation/Simulation.csproj" />
+  </Folder>
+</Solution>

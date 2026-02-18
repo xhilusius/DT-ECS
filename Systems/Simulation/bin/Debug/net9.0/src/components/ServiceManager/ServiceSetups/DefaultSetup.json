@@ -1,0 +1,42 @@
+{
+  "name": "Default Gravity and Position Simulation",
+  "description": "Simulation with parallel force composition: Force models run in parallel, PhysicsIntegrator sums forces",
+  "timeStep": {
+    "value": 100,
+    "unit": "ms"
+  },
+  "simulationModels": [
+    {
+      "name": "GravityModel",
+      "inputProperties": ["Mass"],
+      "outputProperties": ["GravityForce"]
+    },
+    {
+      "name": "DragModel",
+      "inputProperties": ["CurrentSpeed", "Radius", "Mass"],
+      "outputProperties": ["DragForce"]
+    },
+    {
+      "name": "MagnetismModel",
+      "inputProperties": ["IsMetal", "Mass"],
+      "outputProperties": ["MagnetismForce"]
+    },
+    {
+      "name": "PhysicsIntegrator",
+      "inputProperties": ["Mass", "GravityForce", "DragForce", "MagnetismForce", "CurrentSpeed"],
+      "outputProperties": ["CurrentSpeed", "Displacement"]
+    },
+    {
+      "name": "PositionModel",
+      "inputProperties": ["Position", "Displacement"],
+      "outputProperties": ["Position", "Displacement"]
+    }
+  ],
+  "executionBatches": [
+    ["GravityModel", "DragModel", "MagnetismModel"],
+    ["PhysicsIntegrator"],
+    ["PositionModel"]
+  ],
+  "parallel": true
+}
+

@@ -1,0 +1,442 @@
+namespace Simulation.ServiceManager;
+
+using System.Text.Json;
+using Simulation.SimulationEngine;
+
+/// <summary>
+/// Manages the execution of SimulationServices respecting their dependencies.
+/// 
+/// Responsibilities:
+/// - Register services with their input/output property declarations
+/// - Determine execution order based on property dependencies
+/// - Provide executable batches to SimEngine (services that can run in parallel)
+/// - Wait for each batch to complete before providing the next
+/// - Manage simulation state (Running, Paused, Stopped)
+/// - Control the simulation loop
+/// 
+/// Execution model:
+/// 1. ServiceManager computes which services can execute (dependencies met)
+/// 2. ServiceManager provides batch to SimEngine
+/// 3. SimEngine executes batch, services read/write properties
+/// 4. SimEngine returns results
+/// 5. ServiceManager updates available properties, computes next batch
+/// 6. Repeat until all services executed
+/// 
+/// Does not own SimEngine - receives it as a reference.
+/// </summary>
+public class ServiceManager
+{
+    private readonly SimEngine _simEngine;
+    private readonly Dictionary<string, ServiceDescriptor> _services;
+    private readonly HashSet<string> _completedServices;
+    private readonly HashSet<string> _availableProperties;
+    private SimulationState _currentState;
+    private CancellationTokenSource? _cancellationTokenSource;
+    private Task? _simulationLoopTask;
+    private readonly object _stateLock = new object();
+    private int _stepCounter = 0;
+    private bool _parallelExecution = false;
+    
+    /// <summary>
+    /// Maps each service name to its batch index.
+    /// Determines the execution phase order.
+    /// </summary>
+    private Dictionary<string, int> _serviceToBatchIndex = new();
+
+    /// <summary>
+    /// Represents the current state of the simulation.
+    /// </summary>
+    public enum SimulationState
+    {
+        Stopped,      // Not running, ready to be started
+        Running,      // Actively executing simulation steps
+        Paused,       // Temporarily halted, can be resumed
+        Stopping      // In process of stopping
+    }
+
+    /// <summary>
+    /// Creates a ServiceManager that loads configuration from a JSON file.
+    /// Call InitializeAsync after construction to load services from configuration.
+    /// </summary>
+    /// <param name="simEngine">The SimEngine instance to use for service execution</param>
+    public ServiceManager(SimEngine simEngine)
+    {
+        if (simEngine == null)
+            throw new ArgumentNullException(nameof(simEngine));
+
+        _simEngine = simEngine;
+        _services = new Dictionary<string, ServiceDescriptor>();
+        _completedServices = new HashSet<string>();
+        _availableProperties = new HashSet<string>();
+        _currentState = SimulationState.Stopped;
+    }
+
+    /// <summary>
+    /// Asynchronously initializes services by loading configuration from a JSON file.
+    /// Must be called after construction to set up services.
+    /// </summary>
+    /// <param name="configurationFileName">Name of the configuration file in the ServiceSetups folder (e.g., "DefaultSetup.json")</param>
+    public async Task InitializeAsync(string configurationFileName)
+    {
+        if (string.IsNullOrWhiteSpace(configurationFileName))
+            throw new ArgumentException("Configuration file name cannot be null or empty", nameof(configurationFileName));
+
+        await InitializeServicesFromConfigurationAsync(configurationFileName);
+    }
+
+    /// <summary>
+    /// Registers a service with its input/output property declarations.
+    /// Must be called before starting the simulation.
+    /// </summary>
+    public void RegisterService(ServiceDescriptor descriptor)
+    {
+        if (descriptor == null)
+            throw new ArgumentNullException(nameof(descriptor));
+
+        lock (_stateLock)
+        {
+            if (_currentState != SimulationState.Stopped)
+                throw new InvalidOperationException("Cannot register services while simulation is running");
+
+            _services[descriptor.ServiceName] = descriptor;
+        }
+    }
+
+    /// <summary>
+    /// Starts the simulation loop.
+    /// Executes all registered services in batches respecting dependencies.
+    /// </summary>
+    public async Task StartAsync()
+    {
+        lock (_stateLock)
+        {
+            if (_currentState != SimulationState.Stopped)
+                throw new InvalidOperationException("Simulation is already running or paused");
+
+            _currentState = SimulationState.Running;
+            _stepCounter = 0; // Reset step counter when starting
+        }
+
+        try
+        {
+            _cancellationTokenSource = new CancellationTokenSource();
+            _simulationLoopTask = RunSimulationLoopAsync(_cancellationTokenSource.Token);
+            await _simulationLoopTask;
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when stopping
+        }
+        finally
+        {
+            _cancellationTokenSource?.Dispose();
+            _cancellationTokenSource = null;
+
+            lock (_stateLock)
+            {
+                _currentState = SimulationState.Stopped;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Pauses the simulation loop.
+    /// The loop stops processing but state is preserved in the repository.
+    /// </summary>
+    public void Pause()
+    {
+        lock (_stateLock)
+        {
+            if (_currentState == SimulationState.Running)
+            {
+                _currentState = SimulationState.Paused;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resumes the simulation loop from a paused state.
+    /// </summary>
+    public void Continue()
+    {
+        lock (_stateLock)
+        {
+            if (_currentState == SimulationState.Paused)
+            {
+                _currentState = SimulationState.Running;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Stops the simulation loop completely.
+    /// Waits for the current step to complete.
+    /// </summary>
+    public async Task StopAsync()
+    {
+        lock (_stateLock)
+        {
+            if (_currentState == SimulationState.Stopped)
+                return;
+
+            _currentState = SimulationState.Stopping;
+        }
+
+        _cancellationTokenSource?.Cancel();
+
+        if (_simulationLoopTask != null)
+        {
+            try
+            {
+                await _simulationLoopTask;
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected
+            }
+        }
+    }
+
+    /// <summary>
+    /// Executes exactly one simulation step (all services in dependency order) and automatically pauses.
+    /// Used for step-by-step debugging or manual control.
+    /// </summary>
+    public async Task ExecuteOneStepAsync()
+    {
+        lock (_stateLock)
+        {
+            if (_currentState != SimulationState.Paused && _currentState != SimulationState.Stopped)
+                throw new InvalidOperationException("Can only execute one step when paused or stopped");
+            
+            // Reset counter if starting from stopped state
+            if (_currentState == SimulationState.Stopped)
+                _stepCounter = 0;
+        }
+
+        // Execute one simulation step
+        await ExecuteSimulationStepAsync();
+
+        // Ensure we're in paused state
+        lock (_stateLock)
+        {
+            _currentState = SimulationState.Paused;
+        }
+    }
+
+    /// <summary>
+    /// Clears all simulation state (resets repository and service completion tracking).
+    /// Used when stopping to ensure a fresh start.
+    /// </summary>
+    public async Task ClearAllStateAsync()
+    {
+        await _simEngine.ClearAllStateAsync();
+
+        lock (_stateLock)
+        {
+            _completedServices.Clear();
+            _availableProperties.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Gets the current simulation state.
+    /// </summary>
+    public SimulationState GetState()
+    {
+        lock (_stateLock)
+        {
+            return _currentState;
+        }
+    }
+
+    /// <summary>
+    /// Runs the simulation loop, repeatedly executing all services in dependency order.
+    /// Respects pause/stop requests.
+    /// </summary>
+    private async Task RunSimulationLoopAsync(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var state = GetState();
+
+            // Check if paused
+            if (state == SimulationState.Paused)
+            {
+                await Task.Delay(100, cancellationToken);
+                continue;
+            }
+
+            // Check if stopping
+            if (state == SimulationState.Stopping)
+            {
+                break;
+            }
+
+            // Execute one simulation step
+            await ExecuteSimulationStepAsync();
+
+            // Delay for frame rate control (~60 FPS)
+            await Task.Delay(16, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Executes one complete simulation step.
+    /// Executes all services in batches respecting their dependencies and batch order.
+    /// Services within a batch can run in parallel, but batches execute sequentially.
+    /// </summary>
+    private async Task ExecuteSimulationStepAsync()
+    {
+        lock (_stateLock)
+        {
+            _completedServices.Clear();
+            _availableProperties.Clear();
+        }
+
+        var existingPropertyTypes = await _simEngine.GetStateManager()
+            .GetRepositoryManager()
+            .GetAllPropertyTypesAsync();
+
+        lock (_stateLock)
+        {
+            foreach (var propertyType in existingPropertyTypes)
+            {
+                _availableProperties.Add(propertyType);
+            }
+        }
+
+        // Determine the number of batches
+        int maxBatchIndex = _serviceToBatchIndex.Values.Max();
+
+        // Execute each batch sequentially
+        for (int currentBatch = 0; currentBatch <= maxBatchIndex; currentBatch++)
+        {
+            // Get all services in this batch
+            var servicesInBatch = _services.Values
+                .Where(s => _serviceToBatchIndex[s.ServiceName] == currentBatch)
+                .ToList();
+
+            // Execute all services in the batch that have their dependencies met
+            while (true)
+            {
+                var executableServices = servicesInBatch
+                    .Where(s => 
+                        !_completedServices.Contains(s.ServiceName) &&
+                        s.InputProperties.All(prop => _availableProperties.Contains(prop))
+                    )
+                    .ToList();
+
+                if (executableServices.Count == 0)
+                {
+                    // All services in this batch have executed
+                    break;
+                }
+
+                // Execute the batch of services (in parallel or sequential based on configuration)
+                await _simEngine.ExecuteServiceBatchAsync(executableServices, _parallelExecution);
+
+                // Mark as completed and update available properties
+                lock (_stateLock)
+                {
+                    foreach (var serviceDescriptor in executableServices)
+                    {
+                        _completedServices.Add(serviceDescriptor.ServiceName);
+
+                        foreach (var outputProp in serviceDescriptor.OutputProperties)
+                        {
+                            _availableProperties.Add(outputProp);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Increment and report step completion
+        int currentStep;
+        lock (_stateLock)
+        {
+            _stepCounter++;
+            currentStep = _stepCounter;
+        }
+        await _simEngine.GetStateManager().ReportStateAsync($"Simulation step {currentStep} complete");
+    }
+
+    /// <summary>
+    /// Initializes services from a configuration file.
+    /// Loads the configuration, instantiates models, registers archetypes, and registers them with their batch assignments.
+    /// </summary>
+    private async Task InitializeServicesFromConfigurationAsync(string configurationFileName)
+    {
+        try
+        {
+            // Load the configuration
+            var config = ServiceSetupLoader.LoadConfiguration(configurationFileName);
+
+            // Load properties configuration (units and visibility settings)
+            var propertiesConfig = ServiceSetupLoader.LoadPropertiesConfiguration();
+
+            // Store the parallel execution setting
+            _parallelExecution = config.Parallel;
+
+            // Create a mapping of model names to their configurations for easy lookup
+            var modelConfigMap = config.SimulationModels.ToDictionary(m => m.Name, m => m);
+
+            var timeStepSeconds = ServiceSetupLoader.GetTimeStepSeconds(config.TimeStep);
+            _simEngine.GetStateManager().SetPropertiesConfiguration(propertiesConfig);
+
+            var repositoryManager = _simEngine.GetStateManager().GetRepositoryManager();
+
+            // Process each batch and register services
+            _serviceToBatchIndex = new Dictionary<string, int>();
+
+            for (int batchIndex = 0; batchIndex < config.ExecutionBatches.Count; batchIndex++)
+            {
+                var batch = config.ExecutionBatches[batchIndex];
+
+                foreach (var modelName in batch)
+                {
+                    if (!modelConfigMap.TryGetValue(modelName, out var modelConfig))
+                        throw new InvalidOperationException($"Model {modelName} referenced in execution batch but not defined");
+
+                    // Register archetype for this model through RepositoryManager
+                    await repositoryManager.RegisterArchetypeAsync(
+                        modelName,
+                        modelName,
+                        new HashSet<string>(modelConfig.InputProperties),
+                        $"Archetype for {modelName} requiring properties: {string.Join(", ", modelConfig.InputProperties)}"
+                    );
+
+                    // Create the model instance
+                    var modelInstance = SimulationModelFactory.CreateModel(modelName, timeStepSeconds);
+
+                    // Register the model with SimEngine
+                    _simEngine.RegisterService(modelInstance);
+
+                    // Create and register the service descriptor
+                    var descriptor = new ServiceDescriptor(
+                        modelName,
+                        modelInstance,
+                        modelConfig.InputProperties,
+                        modelConfig.OutputProperties
+                    );
+
+                    RegisterService(descriptor);
+
+                    // Track the batch assignment for this service
+                    _serviceToBatchIndex[modelName] = batchIndex;
+                }
+            }
+        }
+        catch (FileNotFoundException ex)
+        {
+            throw new InvalidOperationException($"Configuration file not found: {ex.Message}", ex);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException($"Error parsing configuration file: {ex.Message}", ex);
+        }
+    }
+}
+
+
+
