@@ -28,7 +28,7 @@ using Simulation.StateManager;
 /// </summary>
 public class MagnetismModel : ISimulationModel
 {
-    private const float MagneticFieldStrength = 5.0f; // m/s² (adjustable magnetic acceleration)
+    private const float MagneticFieldStrength = 2.5f; // m/s² (adjustable magnetic acceleration)
     private readonly float _timeStepSeconds;
 
     public MagnetismModel(float timeStepSeconds)

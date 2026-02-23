@@ -35,7 +35,7 @@ public class WindForceModel : ISimulationModel
 
     public WindForceModel(Vector3? windVelocity = null)
     {
-        // Default wind blows in positive z direction at 1 m/s
+        // Default wind blows in positive z direction at 5 m/s
         _windVelocity = windVelocity ?? new Vector3(0, 0, 5.0f);
     }
 

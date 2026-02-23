@@ -26,7 +26,7 @@ public static class TestCases
                         Properties = new Dictionary<string, object>
                         {
                             { "Mass", 1.0f },
-                            { "Position", new Vector3(0, 10, 0) },
+                            { "Position", new Vector3(0, 50, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
                             { "Radius", 0.2f },                            
@@ -83,7 +83,7 @@ public static class TestCases
                         Properties = new Dictionary<string, object>
                         {
                             { "Mass", 0.5f },
-                            { "Position", new Vector3(-2, 10, 0) },
+                            { "Position", new Vector3(-2, 50, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
                             { "Radius", 0.4f },
@@ -99,7 +99,7 @@ public static class TestCases
                         Properties = new Dictionary<string, object>
                         {
                             { "Mass", 0.5f },
-                            { "Position", new Vector3(0, 10, 0) },
+                            { "Position", new Vector3(0, 50, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
                             { "Radius", 0.6f },
@@ -115,7 +115,7 @@ public static class TestCases
                         Properties = new Dictionary<string, object>
                         {
                             { "Mass", 2.0f },
-                            { "Position", new Vector3(2, 10, 0) },
+                            { "Position", new Vector3(2, 50, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
                             { "Radius", 0.6f },
@@ -175,7 +175,7 @@ public static class TestCases
                         Properties = new Dictionary<string, object>
                         {
                             { "Mass", 1.0f },
-                            { "Position", new Vector3(-1, 10, 0) },
+                            { "Position", new Vector3(-1, 50, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
                             { "Radius", 0.2f },
@@ -190,7 +190,7 @@ public static class TestCases
                         Name = "Incomplete entity",
                         Properties = new Dictionary<string, object>
                         {
-                            { "Position", new Vector3(1, 10, 0) },
+                            { "Position", new Vector3(1, 50, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
                             { "Radius", 0.2f },
@@ -248,7 +248,7 @@ public static class TestCases
                         Properties = new Dictionary<string, object>
                         {
                             { "Mass", 1.0f },
-                            { "Position", new Vector3(-1, 10, 0) },
+                            { "Position", new Vector3(-1, 50, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
                             { "Radius", 0.2f },                            
@@ -265,7 +265,7 @@ public static class TestCases
                         Properties = new Dictionary<string, object>
                         {
                             { "Mass", 1.0f },
-                            { "Position", new Vector3(1, 10, 0) },
+                            { "Position", new Vector3(1, 50, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
                             { "Radius", 0.2f },
@@ -325,16 +325,16 @@ public static class TestCases
                         Properties = new Dictionary<string, object>
                         {
                             { "Mass", 1.0f },
-                            { "Position", new Vector3(-1.5f, 10, 0) },
+                            { "Position", new Vector3(-1.5f, 50, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.8f },
+                            { "Radius", 1.0f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
                             { "WindForce", new Vector3(0, 0, 0) },
                             { "Color", Color.DeepSkyBlue }
                         },
-                        Description = "Mass=1.0kg, Radius=0.8m - large cross-section, significantly affected by wind"
+                        Description = "Mass=1.0kg, Radius=1.0m - large cross-section, significantly affected by wind"
                     },
                     new()
                     {
@@ -342,16 +342,16 @@ public static class TestCases
                         Properties = new Dictionary<string, object>
                         {
                             { "Mass", 1.0f },
-                            { "Position", new Vector3(1.5f, 10, 0) },
+                            { "Position", new Vector3(1.5f, 50, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.1f },
+                            { "Radius", 0.5f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
                             { "WindForce", new Vector3(0, 0, 0) },
                             { "Color", Color.Turquoise }
                         },
-                        Description = "Mass=1.0kg, Radius=0.1m - small cross-section, minimal wind effect"
+                        Description = "Mass=1.0kg, Radius=0.5m - small cross-section, minimal wind effect"
                     }
                 }
             },
@@ -389,12 +389,12 @@ public static class TestCases
             }
         ),
         new(
-            "Combined forces: gravity only, gravity+magnetism, gravity+wind+magnetism",
+            "Combined forces: gravity only, gravity+magnetism, gravity+wind, gravity+magnetism+wind",
             // Setup data
             new TestSetup
             {
                 ConfigurationFile = "DefaultSetup.json",
-                Description = "Three entities with identical size/mass but different force combinations: gravity-only, gravity+magnetism, gravity+wind+magnetism",
+                Description = "Four entities with identical size/mass but different force combinations: gravity-only, gravity+magnetism, gravity+wind, gravity+magnetism+wind",
                 Entities = new List<EntityDefinition>
                 {
                     new()
@@ -403,7 +403,7 @@ public static class TestCases
                         Properties = new Dictionary<string, object>
                         {
                             { "Mass", 1.0f },
-                            { "Position", new Vector3(-2, 10, 0) },
+                            { "Position", new Vector3(-3, 50, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
                             { "Radius", 0.3f },
@@ -419,7 +419,7 @@ public static class TestCases
                         Properties = new Dictionary<string, object>
                         {
                             { "Mass", 1.0f },
-                            { "Position", new Vector3(0, 10, 0) },
+                            { "Position", new Vector3(-1, 50, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
                             { "Radius", 0.3f },
@@ -432,21 +432,38 @@ public static class TestCases
                     },
                     new()
                     {
+                        Name = "Gravity + Wind",
+                        Properties = new Dictionary<string, object>
+                        {
+                            { "Mass", 1.0f },
+                            { "Position", new Vector3(1, 50, 0) },
+                            { "Displacement", new Vector3(0, 0, 0) },
+                            { "CurrentSpeed", new Vector3(0, 0, 0) },
+                            { "Radius", 0.3f },
+                            { "GravityForce", new Vector3(0, 0, 0) },
+                            { "DragForce", new Vector3(0, 0, 0) },
+                            { "WindForce", new Vector3(0, 0, 0) },
+                            { "Color", Color.Cyan }
+                        },
+                        Description = "Non-metallic (no MagnetismForce property), affected by wind - gravity and wind force (horizontal push)"
+                    },
+                    new()
+                    {
                         Name = "Gravity + Wind + Magnetism",
                         Properties = new Dictionary<string, object>
                         {
                             { "Mass", 1.0f },
-                            { "Position", new Vector3(2, 10, 0) },
+                            { "Position", new Vector3(3, 50, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.4f },
+                            { "Radius", 0.3f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
                             { "MagnetismForce", new Vector3(0, 0, 0) },
                             { "WindForce", new Vector3(0, 0, 0) },
                             { "Color", Color.Lime }
                         },
-                        Description = "Metallic with larger radius (has MagnetismForce and WindForce properties) - gravity+magnetism+wind (multi-directional)"
+                        Description = "Metallic (has MagnetismForce and WindForce properties) - gravity+magnetism+wind (all forces active)"
                     }
                 }
             },
@@ -456,8 +473,9 @@ public static class TestCases
                 Console.WriteLine("╔═════════════════════════════════════════════════════════════╗");
                 Console.WriteLine("║  TEST CASE 6: Combined Forces - Force Composition           ║");
                 Console.WriteLine("║  Entity 1: gravity only (downward)                          ║");
-                Console.WriteLine("║  Entity 2: gravity + magnetism (upward magic force)         ║");
-                Console.WriteLine("║  Entity 3: gravity + wind + magnetism (multi-directional)   ║");
+                Console.WriteLine("║  Entity 2: gravity + magnetism (upward magnetic force)      ║");
+                Console.WriteLine("║  Entity 3: gravity + wind (horizontal wind push)            ║");
+                Console.WriteLine("║  Entity 4: gravity + magnetism + wind (all forces)          ║");
                 Console.WriteLine("╚═════════════════════════════════════════════════════════════╝\n");
 
                 try
