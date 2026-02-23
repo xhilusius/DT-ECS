@@ -9,8 +9,7 @@ using Simulation.StateManager;
 /// Entry point for user interaction with the Simulation subsystem.
 /// Provides a user-friendly interface for controlling simulation execution and entity management.
 /// Delegates simulation management to ServiceManager.
-/// Delegates entity metadata management to EntityManager.
-/// Delegates state storage to StateManager.
+/// Delegates all entity and state management to EntityManager.
 /// 
 /// Two main areas of responsibility:
 /// 
@@ -27,26 +26,31 @@ using Simulation.StateManager;
 ///    - Remove properties from entities
 ///    - Query entity composition and status
 /// 
-/// Does not own ServiceManager, EntityManager, or StateManager - receives them as references.
+/// Does not own ServiceManager or EntityManager - receives them as references.
+/// EntityManager owns and coordinates with StateManager for all storage operations.
 /// </summary>
 public class InteractionController : IInteractionController
 {
     private readonly ServiceManager _serviceManager;
     private readonly EntityManager _entityManager;
-    private readonly StateManager _stateManager;
 
-    public InteractionController(ServiceManager serviceManager, EntityManager entityManager, StateManager stateManager)
+    public InteractionController(ServiceManager serviceManager, EntityManager entityManager)
     {
         if (serviceManager == null)
             throw new ArgumentNullException(nameof(serviceManager));
         if (entityManager == null)
             throw new ArgumentNullException(nameof(entityManager));
-        if (stateManager == null)
-            throw new ArgumentNullException(nameof(stateManager));
 
         _serviceManager = serviceManager;
         _entityManager = entityManager;
-        _stateManager = stateManager;
+    }
+
+    /// <summary>
+    /// Gets the EntityManager for accessing entity metadata and state coordination.
+    /// </summary>
+    public EntityManager GetEntityManager()
+    {
+        return _entityManager;
     }
 
     /// <summary>
@@ -169,9 +173,8 @@ public class InteractionController : IInteractionController
 
     /// <summary>
     /// Creates a new entity with specified properties and metadata.
-    /// User-facing method for entity creation through the interaction controller.
-    /// Orchestrates EntityManager (metadata) and StateManager (storage).
-    /// MVP: Also notifies visualization system of entity creation.
+    /// Orchestrates through EntityManager for all entity and state management.
+    /// EntityManager coordinates with StateManager for property storage and visualization.
     /// </summary>
     /// <param name="name">Human-readable name for the entity</param>
     /// <param name="propertyDefaults">Dictionary of property type → initial value</param>
@@ -187,27 +190,8 @@ public class InteractionController : IInteractionController
 
         try
         {
-            // Step 1: Register the entity in EntityManager (metadata + composition)
-            var creationInfo = _entityManager.RegisterNewEntity(name, propertyDefaults.Keys, description);
-
-            // Step 2: Add entries to StateManager's properties
-            foreach (var propertyType in propertyDefaults.Keys)
-            {
-                var initialValue = propertyDefaults[propertyType];
-
-                // Fetch current property array and add the entity's value at the end
-                var currentValues = await _stateManager.GetPropertiesByTypeAsync(propertyType) ?? new List<object>();
-                currentValues.Add(initialValue);
-
-                // Store updated property array
-                await _stateManager.SetPropertiesByTypeAsync(propertyType, currentValues);
-            }
-
-            // Step 3: MVP DEPENDENCY - Notify visualization system of new entity
-            // This allows external visualization tool to register the entity
-            await _stateManager.NotifyEntitiesCreatedAsync(new[] { creationInfo.Entity.Id });
-
-            return creationInfo.Entity;
+            // EntityManager coordinates all entity creation and state initialization
+            return await _entityManager.RegisterNewEntityWithStateAsync(name, propertyDefaults, description);
         }
         catch (Exception ex)
         {
@@ -218,7 +202,8 @@ public class InteractionController : IInteractionController
 
     /// <summary>
     /// Adds a property to an existing entity.
-    /// Orchestrates EntityManager (metadata) and StateManager (storage).
+    /// Orchestrates through EntityManager for all entity and state management.
+    /// EntityManager coordinates with StateManager for property storage.
     /// </summary>
     /// <param name="entityId">The entity to modify</param>
     /// <param name="propertyType">The property type to add</param>
@@ -230,18 +215,8 @@ public class InteractionController : IInteractionController
 
         try
         {
-            // Step 1: Get current property array length (this will be the index for this entity)
-            var currentValues = await _stateManager.GetPropertiesByTypeAsync(propertyType) ?? new List<object>();
-            int propertyIndex = currentValues.Count;
-
-            // Step 2: Add value to StateManager's property array
-            currentValues.Add(initialValue);
-            await _stateManager.SetPropertiesByTypeAsync(propertyType, currentValues);
-
-            // Step 3: Update EntityManager to track this entity at the new index
-            _entityManager.AddPropertyToEntity(entityId, propertyType);
-
-            Console.WriteLine($"Property '{propertyType}' added to Entity {entityId}");
+            // EntityManager coordinates all property addition and state management
+            await _entityManager.AddPropertyToEntityWithStateAsync(entityId, propertyType, initialValue);
         }
         catch (Exception ex)
         {
@@ -252,6 +227,7 @@ public class InteractionController : IInteractionController
 
     /// <summary>
     /// Removes a property from an existing entity.
+    /// Orchestrates through EntityManager for all entity management.
     /// </summary>
     /// <param name="entityId">The entity to modify</param>
     /// <param name="propertyType">The property type to remove</param>
@@ -335,15 +311,6 @@ public class InteractionController : IInteractionController
             Console.WriteLine($"Error inspecting entity: {ex.Message}");
             throw;
         }
-    }
-
-    /// <summary>
-    /// Gets the StateManager instance for direct state queries.
-    /// Used by test execution logic to report state.
-    /// </summary>
-    public StateManager GetStateManager()
-    {
-        return _stateManager;
     }
 
     #endregion

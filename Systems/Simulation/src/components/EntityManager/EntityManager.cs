@@ -1,5 +1,7 @@
 namespace Simulation.EntityManager;
 
+using Simulation.StateManager;
+
 /// <summary>
 /// Manages the mapping between entities and their properties in the StateRepository.
 /// 
@@ -9,8 +11,9 @@ namespace Simulation.EntityManager;
 /// - Manage entity creation and removal
 /// - Update mappings when entity properties are added/removed
 /// - Provide entity metadata queries
+/// - Coordinate with StateManager for entity creation and property initialization
 /// 
-/// NOTE: EntityManager does NOT own StateManager.
+/// NOTE: EntityManager owns a StateManager reference for coordinating storage operations.
 /// EntityManager tracks metadata and indices. StateManager handles storage.
 /// 
 /// How it works:
@@ -21,8 +24,8 @@ namespace Simulation.EntityManager;
 /// 
 /// When an entity's property is removed or added, the list automatically adjusts and indices shift.
 /// 
-/// Users interact through: InteractionController → EntityManager (metadata) + StateManager (storage)
-/// Both must be kept in sync when properties are added/removed.
+/// Users interact through: InteractionController → EntityManager → StateManager
+/// EntityManager coordinates between InteractionController and StateManager.
 /// </summary>
 public class EntityManager
 {
@@ -43,6 +46,13 @@ public class EntityManager
     private readonly Dictionary<int, HashSet<string>> _entityComposition;
     
     /// <summary>
+    /// Maps each entity to its property indices in the repository.
+    /// Key: EntityId, Value: {PropertyType → Index in property array}
+    /// This mapping is populated when the entity is created via RegisterNewEntityWithStateAsync.
+    /// </summary>
+    private readonly Dictionary<int, Dictionary<string, int>> _entityPropertyIndices;
+    
+    /// <summary>
     /// Maps EntityId to the Entity object containing metadata (name, description).
     /// Key: EntityId, Value: Entity with ID, Name, Description
     /// </summary>
@@ -54,12 +64,42 @@ public class EntityManager
     /// </summary>
     private int _nextEntityId;
 
+    
+    /// <summary>
+    /// StateManager reference for coordinating entity creation and property storage.
+    /// </summary>
+    private StateManager? _stateManager;
+
     public EntityManager()
     {
         _propertyToEntityList = new Dictionary<string, List<int>>();
         _entityComposition = new Dictionary<int, HashSet<string>>();
+        _entityPropertyIndices = new Dictionary<int, Dictionary<string, int>>();
         _entityMetadata = new Dictionary<int, Entity>();
         _nextEntityId = 0;
+        _stateManager = null; // Will be set after StateManager is created
+    }
+
+    /// <summary>
+    /// Sets the StateManager reference for coordinating entity operations with storage.
+    /// Called during initialization after StateManager is created (circular dependency resolution).
+    /// </summary>
+    public void SetStateManager(StateManager stateManager)
+    {
+        if (stateManager == null)
+            throw new ArgumentNullException(nameof(stateManager));
+        
+        _stateManager = stateManager;
+    }
+
+    /// <summary>
+    /// Gets the StateManager reference for accessing storage and state operations.
+    /// </summary>
+    public StateManager GetStateManager()
+    {
+        if (_stateManager == null)
+            throw new InvalidOperationException("StateManager has not been initialized. Call SetStateManager() first.");
+        return _stateManager;
     }
 
     /// <summary>
@@ -107,6 +147,7 @@ public class EntityManager
             _propertyToEntityList[propertyType].Add(entityId);
         }
 
+
         return new EntityCreationInfo
         {
             Entity = entity,
@@ -115,9 +156,126 @@ public class EntityManager
     }
 
     /// <summary>
+    /// Registers a new entity with StateManager coordination.
+    /// This is the primary method used by InteractionController.
+    /// Handles both EntityManager registration AND StateManager property initialization.
+    /// Captures property indices from StateManager for entity-aware queries.
+    /// 
+    /// Flow:
+    /// 1. Register entity in EntityManager (metadata and indices tracking)
+    /// 2. Coordinate with StateManager to add each property and capture returned indices
+    /// 3. Store entity → property → index mappings for fast entity lookups
+    /// 4. Notify visualization system of entity creation
+    /// </summary>
+    /// <param name="name">Human-readable name for the entity</param>
+    /// <param name="propertyDefaults">Dictionary of property type → initial value</param>
+    /// <param name="description">Optional description of the entity's purpose</param>
+    /// <returns>The Entity object created with ID, name, and description</returns>
+    public async Task<Entity> RegisterNewEntityWithStateAsync(string name, Dictionary<string, object> propertyDefaults, string? description = null)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Entity name cannot be null or empty", nameof(name));
+
+        if (propertyDefaults == null)
+            throw new ArgumentNullException(nameof(propertyDefaults));
+
+        if (_stateManager == null)
+            throw new InvalidOperationException("StateManager has not been set. Call SetStateManager() first.");
+
+        try
+        {
+            // Step 1: Register the entity in EntityManager (metadata + index tracking)
+            var creationInfo = RegisterNewEntity(name, propertyDefaults.Keys, description);
+            int entityId = creationInfo.Entity.Id;
+            
+            // Initialize index mapping for this entity
+            if (!_entityPropertyIndices.ContainsKey(entityId))
+            {
+                _entityPropertyIndices[entityId] = new Dictionary<string, int>();
+            }
+
+            // Step 2 & 3: Coordinate with StateManager to add each property and store indices
+            foreach (var propertyType in propertyDefaults.Keys)
+            {
+                var initialValue = propertyDefaults[propertyType];
+
+                // Add property and capture the returned index
+                int index = await _stateManager.AddPropertyAsync(propertyType, initialValue);
+                
+                // Store the mapping: this entity's property is at this index in the repository
+                _entityPropertyIndices[entityId][propertyType] = index;
+            }
+
+            // Step 4: Notify RepositoryManager of entity creation for cross-subsystem sync
+            {
+                var propertyTypesList = creationInfo.Properties.ToList();
+                var propertyIndicesDict = _entityPropertyIndices[entityId];
+                _stateManager.NotifyEntityRegisteredAsync(entityId, name, propertyTypesList, propertyIndicesDict, description);
+            }
+
+            // Step 5: Notify visualization system of entity creation
+            await _stateManager.NotifyEntitiesCreatedAsync(new[] { entityId });
+
+            return creationInfo.Entity;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to register entity '{name}' with state coordination", ex);
+        }
+    }
+
+    /// <summary>
+    /// Adds a property to an existing entity with StateManager coordination.
+    /// This is the primary method used by InteractionController.
+    /// Captures the property index from StateManager for entity-aware queries.
+    /// 
+    /// Flow:
+    /// 1. Add property value via StateManager and capture returned index
+    /// 2. Store entity → property → index mapping
+    /// 3. Update EntityManager composition tracking
+    /// </summary>
+    /// <param name="entityId">The entity to modify</param>
+    /// <param name="propertyType">The property type to add</param>
+    /// <param name="initialValue">Initial value for the property</param>
+    public async Task AddPropertyToEntityWithStateAsync(int entityId, string propertyType, object initialValue)
+    {
+        if (string.IsNullOrWhiteSpace(propertyType))
+            throw new ArgumentException("Property type cannot be null or empty", nameof(propertyType));
+
+        if (_stateManager == null)
+            throw new InvalidOperationException("StateManager has not been set. Call SetStateManager() first.");
+
+        try
+        {
+            // Step 1: Add property via StateManager and capture the returned index
+            int index = await _stateManager.AddPropertyAsync(propertyType, initialValue);
+
+            // Step 2: Store the index mapping for this entity
+            if (!_entityPropertyIndices.ContainsKey(entityId))
+            {
+                _entityPropertyIndices[entityId] = new Dictionary<string, int>();
+            }
+            _entityPropertyIndices[entityId][propertyType] = index;
+
+            // Step 3: Update EntityManager to track this entity at the new index
+            AddPropertyToEntity(entityId, propertyType);
+
+            // Step 4: Notify RepositoryManager of property addition for cross-subsystem sync
+            _stateManager.NotifyPropertyAddedToEntityAsync(entityId, propertyType, index);
+
+            Console.WriteLine($"Property '{propertyType}' added to Entity {entityId} at index {index}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error adding property to entity: {ex.Message}");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Adds a property to an existing entity.
+    /// Internal method used by AddPropertyToEntityWithStateAsync.
     /// Appends the entity ID to the end of that property's entity list.
-    /// Must be called after the property value is added to StateRepository.
     /// </summary>
     /// <param name="entityId">The entity to modify</param>
     /// <param name="propertyType">The property type to add</param>
@@ -143,6 +301,7 @@ public class EntityManager
         }
 
         _propertyToEntityList[propertyType].Add(entityId);
+
     }
 
     /// <summary>
@@ -179,11 +338,28 @@ public class EntityManager
                     _propertyToEntityList.Remove(propertyType);
                 }
             }
+
         }
         catch (Exception ex)
         {
             throw new InvalidOperationException($"Failed to remove property {propertyType} from entity {entityId}", ex);
         }
+    }
+
+    /// <summary>
+    /// Gets the property indices mapping for a specific entity.
+    /// EntityManager is responsible for tracking which property indices belong to each entity.
+    /// This is used by StateManager when fetching entity-specific data.
+    /// </summary>
+    /// <param name="entityId">The entity to look up</param>
+    /// <returns>Dictionary of propertyType → index in repository, or empty dict if entity not found</returns>
+    public Dictionary<string, int> GetEntityPropertyIndices(int entityId)
+    {
+        if (_entityPropertyIndices.TryGetValue(entityId, out var indices))
+        {
+            return new Dictionary<string, int>(indices);
+        }
+        return new Dictionary<string, int>();
     }
 
     /// <summary>

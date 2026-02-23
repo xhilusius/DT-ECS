@@ -28,13 +28,11 @@ public static class TestCases
                             { "Position", new Vector3(0, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.1f },
+                            { "Radius", 0.1f },                            
                             { "GravityForce", new Vector3(0, 0, 0) },
-                            { "DragForce", new Vector3(0, 0, 0) },
-                            { "MagnetismForce", new Vector3(0, 0, 0) },
                             { "Color", Color.Red }
                         },
-                        Description = "Single ball falling under gravity (1kg, 10cm radius)"
+                        Description = "Non-metallic, no wind (missing MagnetismForce and WindForce properties) - gravity only"
                     }
                 }
             },
@@ -86,7 +84,6 @@ public static class TestCases
                             { "Radius", 0.2f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
-                            { "MagnetismForce", new Vector3(0, 0, 0) },
                             { "Color", Color.Blue }
                         },
                         Description = "Mass=0.5kg, Radius=0.2m (low mass, moderate drag)"
@@ -103,7 +100,6 @@ public static class TestCases
                             { "Radius", 0.3f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
-                            { "MagnetismForce", new Vector3(0, 0, 0) },
                             { "Color", Color.Lime }
                         },
                         Description = "Mass=0.5kg, Radius=0.3m (same mass as E1, more drag = SLOWEST)"
@@ -120,7 +116,6 @@ public static class TestCases
                             { "Radius", 0.3f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
-                            { "MagnetismForce", new Vector3(0, 0, 0) },
                             { "Color", Color.Yellow }
                         },
                         Description = "Mass=2.0kg, Radius=0.3m (heavier, same drag as E2 = FASTEST)"
@@ -177,7 +172,6 @@ public static class TestCases
                             { "Radius", 0.1f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
-                            { "MagnetismForce", new Vector3(0, 0, 0) },
                             { "Color", Color.Cyan }
                         },
                         Description = "Has all properties: Mass, Position, CurrentSpeed, Radius, Displacement"
@@ -244,14 +238,13 @@ public static class TestCases
                             { "Position", new Vector3(-1, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.1f },
-                            { "IsMetal", true },
+                            { "Radius", 0.1f },                            
                             { "GravityForce", new Vector3(0, 0, 0) },
-                            { "DragForce", new Vector3(0, 0, 0) },
+                            { "DragForce", new Vector3(0, 0, 0) },                           
                             { "MagnetismForce", new Vector3(0, 0, 0) },
                             { "Color", Color.Silver }
                         },
-                        Description = "Metallic object - affected by both gravity and magnetic field (upward)"
+                        Description = "Metallic object (has MagnetismForce property) - affected by both gravity and magnetic field (upward)"
                     },
                     new()
                     {
@@ -265,11 +258,9 @@ public static class TestCases
                             { "Radius", 0.1f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
-                            { "MagnetismForce", new Vector3(0, 0, 0) },
                             { "Color", Color.Orange }
-                            // No IsMetal property - absence means non-metallic
                         },
-                        Description = "Non-metallic object - affected by gravity only (no IsMetal tag)"
+                        Description = "Non-metallic object (no MagnetismForce property) - affected by gravity and drag only"
                     }
                 }
             },
@@ -285,6 +276,172 @@ public static class TestCases
                 try
                 {
                     // Run simulation for 10 steps to see magnetic effect
+                    for (int step = 1; step <= 10; step++)
+                    {
+                        await controller.OneStepAsync();
+                    }
+
+                    // Stop simulation
+                    await controller.StopAsync();
+
+                    Console.WriteLine("✓ Test case completed successfully!\n");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"✗ Test case failed: {ex.Message}");
+                    Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+                }
+            }
+        ),
+        new(
+            "Wind effect: large radius vs small radius",
+            // Setup data
+            new TestSetup
+            {
+                ConfigurationFile = "DefaultSetup.json",
+                Description = "Two entities with same mass: one with large radius (affected by wind), one with small radius (minimal wind effect)",
+                Entities = new List<EntityDefinition>
+                {
+                    new()
+                    {
+                        Name = "Large ball (wind-affected)",
+                        Properties = new Dictionary<string, object>
+                        {
+                            { "Mass", 1.0f },
+                            { "Position", new Vector3(-1.5f, 10, 0) },
+                            { "Displacement", new Vector3(0, 0, 0) },
+                            { "CurrentSpeed", new Vector3(0, 0, 0) },
+                            { "Radius", 0.4f },
+                            { "GravityForce", new Vector3(0, 0, 0) },
+                            { "DragForce", new Vector3(0, 0, 0) },
+                            { "WindForce", new Vector3(0, 0, 0) },
+                            { "Color", Color.DeepSkyBlue }
+                        },
+                        Description = "Mass=1.0kg, Radius=0.4m - large cross-section, significantly affected by wind"
+                    },
+                    new()
+                    {
+                        Name = "Small ball (minimal wind)",
+                        Properties = new Dictionary<string, object>
+                        {
+                            { "Mass", 1.0f },
+                            { "Position", new Vector3(1.5f, 10, 0) },
+                            { "Displacement", new Vector3(0, 0, 0) },
+                            { "CurrentSpeed", new Vector3(0, 0, 0) },
+                            { "Radius", 0.05f },
+                            { "GravityForce", new Vector3(0, 0, 0) },
+                            { "DragForce", new Vector3(0, 0, 0) },
+                            { "WindForce", new Vector3(0, 0, 0) },
+                            { "Color", Color.Turquoise }
+                        },
+                        Description = "Mass=1.0kg, Radius=0.05m - small cross-section, minimal wind effect"
+                    }
+                }
+            },
+            // Execution logic
+            async (controller, stateManager) =>
+            {
+                Console.WriteLine("╔═════════════════════════════════════════════════════════════╗");
+                Console.WriteLine("║  TEST CASE 5: Wind Effect - Large vs Small Radius           ║");
+                Console.WriteLine("║  Large ball: gravity + wind (large cross-section)           ║");
+                Console.WriteLine("║  Small ball: gravity + minimal wind (small cross-section)   ║");
+                Console.WriteLine("╚═════════════════════════════════════════════════════════════╝\n");
+
+                try
+                {
+                    // Run simulation for 10 steps to observe wind effect differences
+                    for (int step = 1; step <= 10; step++)
+                    {
+                        await controller.OneStepAsync();
+                    }
+
+                    // Stop simulation
+                    await controller.StopAsync();
+
+                    Console.WriteLine("✓ Test case completed successfully!\n");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"✗ Test case failed: {ex.Message}");
+                    Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+                }
+            }
+        ),
+        new(
+            "Combined forces: gravity only, gravity+magnetism, gravity+wind+magnetism",
+            // Setup data
+            new TestSetup
+            {
+                ConfigurationFile = "DefaultSetup.json",
+                Description = "Three entities with identical size/mass but different force combinations: gravity-only, gravity+magnetism, gravity+wind+magnetism",
+                Entities = new List<EntityDefinition>
+                {
+                    new()
+                    {
+                        Name = "Gravity only",
+                        Properties = new Dictionary<string, object>
+                        {
+                            { "Mass", 1.0f },
+                            { "Position", new Vector3(-2, 10, 0) },
+                            { "Displacement", new Vector3(0, 0, 0) },
+                            { "CurrentSpeed", new Vector3(0, 0, 0) },
+                            { "Radius", 0.15f },
+                            { "GravityForce", new Vector3(0, 0, 0) },
+                            { "DragForce", new Vector3(0, 0, 0) },
+                            { "Color", Color.Red }
+                        },
+                        Description = "Non-metallic, no wind (missing MagnetismForce and WindForce properties) - gravity only"
+                    },
+                    new()
+                    {
+                        Name = "Gravity + Magnetism",
+                        Properties = new Dictionary<string, object>
+                        {
+                            { "Mass", 1.0f },
+                            { "Position", new Vector3(0, 10, 0) },
+                            { "Displacement", new Vector3(0, 0, 0) },
+                            { "CurrentSpeed", new Vector3(0, 0, 0) },
+                            { "Radius", 0.15f },
+                            { "GravityForce", new Vector3(0, 0, 0) },
+                            { "DragForce", new Vector3(0, 0, 0) },
+                            { "MagnetismForce", new Vector3(0, 0, 0) },
+                            { "Color", Color.Gold }
+                        },
+                        Description = "Metallic (has MagnetismForce property), no wind effect - gravity and magnetic field (upward force counteracts gravity)"
+                    },
+                    new()
+                    {
+                        Name = "Gravity + Wind + Magnetism",
+                        Properties = new Dictionary<string, object>
+                        {
+                            { "Mass", 1.0f },
+                            { "Position", new Vector3(2, 10, 0) },
+                            { "Displacement", new Vector3(0, 0, 0) },
+                            { "CurrentSpeed", new Vector3(0, 0, 0) },
+                            { "Radius", 0.2f },
+                            { "GravityForce", new Vector3(0, 0, 0) },
+                            { "DragForce", new Vector3(0, 0, 0) },
+                            { "MagnetismForce", new Vector3(0, 0, 0) },
+                            { "WindForce", new Vector3(0, 0, 0) },
+                            { "Color", Color.Lime }
+                        },
+                        Description = "Metallic with larger radius (has MagnetismForce and WindForce properties) - gravity+magnetism+wind (multi-directional)"
+                    }
+                }
+            },
+            // Execution logic
+            async (controller, stateManager) =>
+            {
+                Console.WriteLine("╔═════════════════════════════════════════════════════════════╗");
+                Console.WriteLine("║  TEST CASE 6: Combined Forces - Force Composition           ║");
+                Console.WriteLine("║  Entity 1: gravity only (downward)                          ║");
+                Console.WriteLine("║  Entity 2: gravity + magnetism (upward magic force)         ║");
+                Console.WriteLine("║  Entity 3: gravity + wind + magnetism (multi-directional)   ║");
+                Console.WriteLine("╚═════════════════════════════════════════════════════════════╝\n");
+
+                try
+                {
+                    // Run simulation for 10 steps to observe different force interactions
                     for (int step = 1; step <= 10; step++)
                     {
                         await controller.OneStepAsync();
@@ -323,7 +480,7 @@ public static class TestCases
         // Initialize components from test setup data
         // Pass visualization mapper so entities are sent to external tools during creation
         var interactionController = await SimulationInitializer.InitializeFromTestSetupAsync(testCase.Setup, visualizationMapper);
-        var stateManager = interactionController.GetStateManager();
+        var stateManager = interactionController.GetEntityManager().GetStateManager();
         
         // Run the test execution logic
         await testCase.ExecutionLogic(interactionController, stateManager);

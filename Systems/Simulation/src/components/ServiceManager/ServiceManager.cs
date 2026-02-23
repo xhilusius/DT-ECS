@@ -451,7 +451,8 @@ public class ServiceManager
                         modelName,
                         modelInstance,
                         modelConfig.InputProperties,
-                        modelConfig.OutputProperties
+                        modelConfig.OutputProperties,
+                        modelConfig.OptionalInputProperties
                     );
 
                     RegisterService(descriptor);

@@ -1,17 +1,17 @@
-namespace DataStorage.ArchetypeManager;
+namespace DataStorage.ArchetypeMapper;
 
 /// <summary>
 /// Manages archetypes for EPS (Entity-Property-Service) systems.
 /// Keeps track of which property combinations are needed by services
 /// and helps identify which entities match specific archetypes.
 /// </summary>
-public class ArchetypeManager
+public class ArchetypeMapper
 {
     private readonly Dictionary<string, Archetype> _archetypes;
     private readonly Dictionary<string, HashSet<string>> _serviceArchetypes; // Maps service name to archetype IDs
     private readonly object _lockObject = new();
 
-    public ArchetypeManager()
+    public ArchetypeMapper()
     {
         _archetypes = new Dictionary<string, Archetype>();
         _serviceArchetypes = new Dictionary<string, HashSet<string>>();

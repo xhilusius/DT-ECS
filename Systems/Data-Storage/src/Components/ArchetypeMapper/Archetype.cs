@@ -1,4 +1,4 @@
-namespace DataStorage.ArchetypeManager;
+namespace DataStorage.ArchetypeMapper;
 
 /// <summary>
 /// Represents an archetype - a specific combination of property types.

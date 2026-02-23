@@ -8,7 +8,7 @@
   "simulationModels": [
     {
       "name": "GravityModel",
-      "inputProperties": ["Mass"],
+      "inputProperties": ["GravityForce","Mass"],
       "outputProperties": ["GravityForce"]
     },
     {
@@ -18,12 +18,18 @@
     },
     {
       "name": "MagnetismModel",
-      "inputProperties": ["IsMetal", "Mass"],
+      "inputProperties": ["MagnetismForce", "Mass"],
       "outputProperties": ["MagnetismForce"]
     },
     {
+      "name": "WindForceModel",
+      "inputProperties": ["WindForce", "Radius"],
+      "outputProperties": ["WindForce"]
+    },
+    {
       "name": "PhysicsIntegrator",
-      "inputProperties": ["Mass", "GravityForce", "DragForce", "MagnetismForce", "CurrentSpeed"],
+      "inputProperties": ["Mass", "CurrentSpeed"],
+      "optionalInputProperties": ["GravityForce", "DragForce", "MagnetismForce", "WindForce"],
       "outputProperties": ["CurrentSpeed", "Displacement"]
     },
     {
@@ -33,7 +39,7 @@
     }
   ],
   "executionBatches": [
-    ["GravityModel", "DragModel", "MagnetismModel"],
+    ["GravityModel", "DragModel", "MagnetismModel", "WindForceModel"],
     ["PhysicsIntegrator"],
     ["PositionModel"]
   ],

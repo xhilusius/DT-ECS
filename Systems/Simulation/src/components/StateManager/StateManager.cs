@@ -45,6 +45,7 @@ public class StateManager
     private HashSet<string>? _intermediateProperties;
     private bool _isFirstReport = true;
 
+
     public StateManager(IRepositoryManager repositoryManager, EntityManager entityManager, VisualizationMapper? visualizationMapper = null)
     {
         if (repositoryManager == null)
@@ -67,9 +68,36 @@ public class StateManager
     }
 
     /// <summary>
-    /// Fetches all property values for a specific property type.
-    /// SimEngine uses this to retrieve input data for services.
+    /// Notifies RepositoryManager that a new entity has been registered.
+    /// This syncs entity metadata to the Data-Storage subsystem via the RepositoryManager.
+    /// Called by EntityManager after an entity is fully created with all its properties.
     /// </summary>
+        public void NotifyEntityRegisteredAsync(int entityId, string name, IEnumerable<string> propertyTypes, Dictionary<string, int> propertyIndices, string? description = null)
+    {
+        // Delegate to RepositoryManager's sync method through the abstraction
+            // RepositoryManager handles the actual Data-Storage EntityMapper synchronization
+        _repositoryManager.SyncEntityRegistration(entityId, name, propertyTypes, propertyIndices, description);
+    }
+
+    /// <summary>
+    /// Notifies RepositoryManager that a property was added to an entity.
+    /// This syncs property composition to the Data-Storage subsystem via the RepositoryManager.
+    /// Called by EntityManager after a property is added to an entity.
+    /// </summary>
+        public void NotifyPropertyAddedToEntityAsync(int entityId, string propertyType, int index)
+    {
+        // Delegate to RepositoryManager's sync method through the abstraction
+            // RepositoryManager handles the actual Data-Storage EntityMapper synchronization
+        _repositoryManager.SyncPropertyAddition(entityId, propertyType, index);
+    }
+
+    /// <summary>
+    /// Fetches all property values for a specific property type.
+    /// Simple query for raw property lists without archetype resolution.
+    /// Used by EntityManager during entity operations.
+    /// </summary>
+    /// <param name="propertyType">The property type to fetch</param>
+    /// <returns>List of all property values for this type, or null if not found</returns>
     public async Task<List<object>?> GetPropertiesByTypeAsync(string propertyType)
     {
         if (string.IsNullOrWhiteSpace(propertyType))
@@ -87,18 +115,13 @@ public class StateManager
 
     /// <summary>
     /// Fetches property arrays for a specific archetype and returns entity-aware mapping.
-    /// Delegates archetype resolution to RepositoryManager, then maps entities using EntityManager.
-    /// Critical for SimEngine when executing a service with a specific archetype.
+    /// Queries RepositoryManager for archetype arrays and entity-to-index mappings.
     /// 
     /// Flow:
-    /// 1. Query RepositoryManager for archetype definition (e.g., "GravityModel" → [Mass, CurrentSpeed, Radius])
-    /// 2. RepositoryManager queries ArchetypeManager internally to resolve the archetype
-    /// 3. RepositoryManager returns property arrays for all required properties
-    /// 4. Query EntityManager to find which entities have ALL these properties
-    /// 5. Return arrays and entity-to-index mappings
+    /// 1. Query RepositoryManager for archetype properties and index mappings
     /// </summary>
     /// <param name="archetypeName">The archetype name/ID (e.g., "GravityModel", "PositionModel")</param>
-    /// <returns>Bundle containing arrays and entity IDs that have ALL properties for this archetype</returns>
+    /// <returns>Bundle containing arrays and entity-to-index mappings from RepositoryManager</returns>
     public async Task<PropertyArrayBundle> GetPropertiesByArchetypeAsync(string archetypeName)
     {
         if (string.IsNullOrWhiteSpace(archetypeName))
@@ -107,44 +130,17 @@ public class StateManager
         try
         {
             // Step 1: Query RepositoryManager for archetype properties
-            // RepositoryManager internally queries ArchetypeManager to resolve the archetype definition
-            var arrays = await _repositoryManager.GetPropertiesForArchetypeAsync(archetypeName);
+                // RepositoryManager internally queries ArchetypeMapper to resolve the archetype definition
+            var result = await _repositoryManager.GetPropertiesForArchetypeAsync(archetypeName);
 
-            if (arrays == null || arrays.Count == 0)
+            if (result == null || result.Arrays.Count == 0)
                 throw new InvalidOperationException($"Archetype '{archetypeName}' not found or has no properties");
-
-            var propertyTypes = arrays.Keys.ToList();
-
-            // Step 2: Query EntityManager to find entities that have ALL required properties
-            var validEntityIds = new List<int>();
-            var entityToPropertyIndices = new Dictionary<int, Dictionary<string, int>>();
-            var allEntityIds = _entityManager.GetAllEntityIds();
-
-            foreach (var entityId in allEntityIds)
-            {
-                var composition = _entityManager.GetEntityComposition(entityId);
-                
-                // Check if entity has all required properties
-                if (propertyTypes.All(pt => composition.Contains(pt)))
-                {
-                    validEntityIds.Add(entityId);
-                    
-                    // Build index mapping for this entity across all properties
-                    var indices = new Dictionary<string, int>();
-                    foreach (var propertyType in propertyTypes)
-                    {
-                        int index = _entityManager.GetEntityIndexInProperty(entityId, propertyType);
-                        indices[propertyType] = index;
-                    }
-                    entityToPropertyIndices[entityId] = indices;
-                }
-            }
 
             return new PropertyArrayBundle
             {
-                Arrays = arrays,
-                ValidEntityIds = validEntityIds,
-                EntityToPropertyIndices = entityToPropertyIndices
+                Arrays = result.Arrays,
+                ValidEntityIds = result.ValidEntityIds,
+                EntityToPropertyIndices = result.EntityToPropertyIndices
             };
         }
         catch (Exception ex)
@@ -152,6 +148,45 @@ public class StateManager
             throw new InvalidOperationException($"Failed to get properties for archetype '{archetypeName}'", ex);
         }
     }
+
+    /// <summary>
+    /// Fetches property arrays for a specific archetype plus optional property arrays.
+    /// Optional properties are fetched when available and do not restrict the entity set.
+    /// The returned mapping includes indices for required properties and optional ones when present.
+    /// </summary>
+    /// <param name="archetypeName">The archetype name/ID (e.g., "GravityModel", "PositionModel")</param>
+    /// <param name="optionalPropertyTypes">Optional property types to include if present</param>
+    /// <returns>Bundle containing arrays and entity-to-index mappings</returns>
+    public async Task<PropertyArrayBundle> GetPropertiesByArchetypeWithOptionalAsync(
+        string archetypeName,
+        IEnumerable<string>? optionalPropertyTypes)
+    {
+        if (string.IsNullOrWhiteSpace(archetypeName))
+            throw new ArgumentException("Archetype name cannot be null or empty", nameof(archetypeName));
+
+        try
+        {
+            var result = await _repositoryManager.GetPropertiesForArchetypeWithOptionalAsync(
+                archetypeName,
+                optionalPropertyTypes
+            );
+
+            if (result == null || result.Arrays.Count == 0)
+                throw new InvalidOperationException($"Archetype '{archetypeName}' not found or has no properties");
+
+            return new PropertyArrayBundle
+            {
+                Arrays = result.Arrays,
+                ValidEntityIds = result.ValidEntityIds,
+                EntityToPropertyIndices = result.EntityToPropertyIndices
+            };
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to get properties for archetype '{archetypeName}'", ex);
+        }
+    }
+
 
     /// <summary>
     /// Fetches multiple property arrays and returns entity-aware mapping.
@@ -183,6 +218,7 @@ public class StateManager
             }
 
             // Query EntityManager to find entities that have ALL required properties
+            // Use EntityManager's stored index mappings for fast lookups
             var validEntityIds = new List<int>();
             var entityToPropertyIndices = new Dictionary<int, Dictionary<string, int>>();
             var allEntityIds = _entityManager.GetAllEntityIds();
@@ -196,12 +232,17 @@ public class StateManager
                 {
                     validEntityIds.Add(entityId);
                     
-                    // Build index mapping for this entity across all properties
+                    // Get the pre-computed index mapping from EntityManager
+                    var allIndices = _entityManager.GetEntityPropertyIndices(entityId);
+                    
+                    // Filter to only the properties being queried
                     var indices = new Dictionary<string, int>();
                     foreach (var propertyType in propertyTypesList)
                     {
-                        int index = _entityManager.GetEntityIndexInProperty(entityId, propertyType);
-                        indices[propertyType] = index;
+                        if (allIndices.TryGetValue(propertyType, out var index))
+                        {
+                            indices[propertyType] = index;
+                        }
                     }
                     entityToPropertyIndices[entityId] = indices;
                 }
@@ -238,6 +279,30 @@ public class StateManager
         catch (Exception ex)
         {
             throw new InvalidOperationException($"Failed to set properties of type '{propertyType}'", ex);
+        }
+    }
+
+    /// <summary>
+    /// Adds a single property value and returns the index where it was placed.
+    /// Used by EntityManager when creating entities to track entity-to-index mappings.
+    /// </summary>
+    /// <param name="propertyType">The property type</param>
+    /// <param name="propertyValue">The value to add</param>
+    /// <returns>The index where the property was added</returns>
+    public async Task<int> AddPropertyAsync(string propertyType, object propertyValue)
+    {
+        if (string.IsNullOrWhiteSpace(propertyType))
+            throw new ArgumentException("Property type cannot be null or empty", nameof(propertyType));
+        if (propertyValue == null)
+            throw new ArgumentNullException(nameof(propertyValue));
+
+        try
+        {
+            return await _repositoryManager.AddPropertyAsync(propertyType, propertyValue);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to add property of type '{propertyType}'", ex);
         }
     }
 

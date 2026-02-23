@@ -44,8 +44,9 @@ public class StateRepository
     /// <summary>
     /// Adds a property value to the list for a specific property type.
     /// Creates the property type list if it doesn't exist.
+    /// Returns the index where the property was added.
     /// </summary>
-    public void AddProperty(string propertyType, object propertyValue)
+    public int AddProperty(string propertyType, object propertyValue)
     {
         if (string.IsNullOrWhiteSpace(propertyType))
         {
@@ -65,6 +66,7 @@ public class StateRepository
             }
 
             _propertiesByType[propertyType].Add(propertyValue);
+            return _propertiesByType[propertyType].Count - 1; // Return the index
         }
     }
 

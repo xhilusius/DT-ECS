@@ -6,10 +6,10 @@ using Simulation.StateManager;
 
 /// <summary>
 /// Physics integrator that applies accumulated forces to calculate velocity and displacement changes.
-/// Reads forces from independent parallel force models (GravityModel, DragModel, MagnetismModel, future WindModel, etc.)
+/// Reads forces from independent parallel force models (GravityModel, DragModel, MagnetismModel, WindForceModel, etc.)
 /// and converts their sum to velocity and displacement changes.
 /// 
-/// Input properties:  ["Mass", "GravityForce", "DragForce", "MagnetismForce", "CurrentSpeed"]
+/// Input properties:  ["Mass", "GravityForce", "DragForce", "MagnetismForce", "WindForce", "CurrentSpeed"]
 /// Output properties: ["CurrentSpeed", "Displacement"]
 /// 
 /// Physics:
@@ -49,6 +49,7 @@ public class PhysicsIntegrator : ISimulationModel
             var gravityForceValues = inputBundle.Arrays.ContainsKey("GravityForce") ? inputBundle.Arrays["GravityForce"] : new List<object>();
             var dragForceValues = inputBundle.Arrays.ContainsKey("DragForce") ? inputBundle.Arrays["DragForce"] : new List<object>();
             var magnetismForceValues = inputBundle.Arrays.ContainsKey("MagnetismForce") ? inputBundle.Arrays["MagnetismForce"] : new List<object>();
+            var windForceValues = inputBundle.Arrays.ContainsKey("WindForce") ? inputBundle.Arrays["WindForce"] : new List<object>();
             var currentSpeedValues = inputBundle.Arrays.ContainsKey("CurrentSpeed") ? inputBundle.Arrays["CurrentSpeed"] : new List<object>();
 
             // Output arrays for updated velocity and displacement
@@ -68,30 +69,46 @@ public class PhysicsIntegrator : ISimulationModel
             foreach (var entityId in inputBundle.ValidEntityIds)
             {
                 // Get the indices of this entity in each property array
+                // All force properties are optional - only present if entity is affected by that force
                 int massIndex = inputBundle.EntityToPropertyIndices[entityId]["Mass"];
-                int gravityForceIndex = inputBundle.EntityToPropertyIndices[entityId]["GravityForce"];
-                int dragForceIndex = inputBundle.EntityToPropertyIndices[entityId]["DragForce"];
-                int magnetismForceIndex = inputBundle.EntityToPropertyIndices[entityId]["MagnetismForce"];
                 int speedIndex = inputBundle.EntityToPropertyIndices[entityId]["CurrentSpeed"];
+                
+                int gravityForceIndex = inputBundle.EntityToPropertyIndices[entityId].ContainsKey("GravityForce") 
+                    ? inputBundle.EntityToPropertyIndices[entityId]["GravityForce"] 
+                    : -1;
+                int dragForceIndex = inputBundle.EntityToPropertyIndices[entityId].ContainsKey("DragForce") 
+                    ? inputBundle.EntityToPropertyIndices[entityId]["DragForce"] 
+                    : -1;
+                int magnetismForceIndex = inputBundle.EntityToPropertyIndices[entityId].ContainsKey("MagnetismForce") 
+                    ? inputBundle.EntityToPropertyIndices[entityId]["MagnetismForce"] 
+                    : -1;
+                int windForceIndex = inputBundle.EntityToPropertyIndices[entityId].ContainsKey("WindForce") 
+                    ? inputBundle.EntityToPropertyIndices[entityId]["WindForce"] 
+                    : -1;
 
                 // Extract mass
                 var mass = massIndex < massValues.Count
                     ? massValues[massIndex] as float? ?? 1.0f
                     : 1.0f;
 
-                // Extract gravity force
-                var gravityForce = gravityForceIndex < gravityForceValues.Count
+                // Extract gravity force (optional)
+                var gravityForce = gravityForceIndex >= 0 && gravityForceIndex < gravityForceValues.Count
                     ? gravityForceValues[gravityForceIndex] as Vector3? ?? Vector3.Zero
                     : Vector3.Zero;
 
-                // Extract drag force
-                var dragForce = dragForceIndex < dragForceValues.Count
+                // Extract drag force (optional)
+                var dragForce = dragForceIndex >= 0 && dragForceIndex < dragForceValues.Count
                     ? dragForceValues[dragForceIndex] as Vector3? ?? Vector3.Zero
                     : Vector3.Zero;
 
-                // Extract magnetism force
-                var magnetismForce = magnetismForceIndex < magnetismForceValues.Count
+                // Extract magnetism force (optional)
+                var magnetismForce = magnetismForceIndex >= 0 && magnetismForceIndex < magnetismForceValues.Count
                     ? magnetismForceValues[magnetismForceIndex] as Vector3? ?? Vector3.Zero
+                    : Vector3.Zero;
+
+                // Extract wind force (optional)
+                var windForce = windForceIndex >= 0 && windForceIndex < windForceValues.Count
+                    ? windForceValues[windForceIndex] as Vector3? ?? Vector3.Zero
                     : Vector3.Zero;
 
                 // Extract current speed
@@ -100,7 +117,7 @@ public class PhysicsIntegrator : ISimulationModel
                     : Vector3.Zero;
 
                 // Sum all forces to get net force
-                Vector3 netForce = gravityForce + dragForce + magnetismForce;
+                Vector3 netForce = gravityForce + dragForce + magnetismForce + windForce;
 
                 // Calculate net acceleration from accumulated forces
                 Vector3 netAcceleration = mass > 0 ? netForce / mass : Vector3.Zero;

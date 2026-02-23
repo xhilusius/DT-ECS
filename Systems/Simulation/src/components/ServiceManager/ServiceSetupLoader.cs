@@ -15,6 +15,9 @@ public class SimulationModelConfig
     [JsonPropertyName("inputProperties")]
     public required List<string> InputProperties { get; set; }
 
+    [JsonPropertyName("optionalInputProperties")]
+    public List<string>? OptionalInputProperties { get; set; }
+
     [JsonPropertyName("outputProperties")]
     public required List<string> OutputProperties { get; set; }
 }

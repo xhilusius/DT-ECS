@@ -44,6 +44,9 @@ public static class SimulationInitializer
         Console.WriteLine("[3/6] Initializing State Manager...");
         var stateManager = new global::Simulation.StateManager.StateManager(repositoryManager, entityManager);
         
+        // Set StateManager reference in EntityManager (circular dependency resolution)
+        entityManager.SetStateManager(stateManager);
+        
         // Connect visualization mapper if provided (for Godot, Unity, etc)
         if (visualizationMapper != null)
         {
@@ -59,7 +62,7 @@ public static class SimulationInitializer
         await serviceManager.InitializeAsync(testSetup.ConfigurationFile);
 
         Console.WriteLine("[6/6] Initializing Interaction Controller...");
-        var interactionController = new global::Simulation.InteractionController.InteractionController(serviceManager, entityManager, stateManager);
+        var interactionController = new global::Simulation.InteractionController.InteractionController(serviceManager, entityManager);
 
         Console.WriteLine("✓ Component hierarchy initialized.\n");
 

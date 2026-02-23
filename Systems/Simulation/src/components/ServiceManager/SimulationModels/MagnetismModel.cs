@@ -7,23 +7,23 @@ using Simulation.StateManager;
 /// <summary>
 /// Magnetism simulation model that calculates magnetic force on metallic objects.
 /// Part of a parallel force composition system where multiple models calculate forces independently.
-/// Uses tag-by-presence: only entities WITH the "IsMetal" property are affected.
+/// Uses property-by-presence: only entities WITH the "MagnetismForce" property are affected.
 /// Applies a force opposite to gravity's direction (upward).
 /// 
-/// Input properties:  ["IsMetal", "Mass"]
+/// Input properties:  ["MagnetismForce", "Mass"]
 /// Output properties: ["MagnetismForce"]
 /// 
 /// Architecture:
-/// - IsMetal acts as a tag: presence = metallic, absence = non-metallic
-/// - Archetype query automatically filters to only entities with IsMetal property
-/// - No boolean check needed - if entity is in the batch, it IS metallic
+/// - MagnetismForce property presence indicates the entity is metallic and affected by magnetism
+/// - Archetype query automatically filters to only entities with MagnetismForce property
+/// - If entity lacks MagnetismForce property, it is not affected by magnetism
 /// 
 /// Physics:
 /// - Magnetic force: F_magnetic = mass * 5.0 m/s² (upward, positive Y)
 /// - Force direction: opposite to gravity (upward, positive Y)
 /// 
 /// The magnetic force is output independently and summed by PhysicsIntegrator
-/// with forces from other models (e.g., GravityModel, future WindModel).
+/// with forces from other models (e.g., GravityModel, WindForceModel).
 /// This enables true parallel execution of force models on multi-core systems.
 /// </summary>
 public class MagnetismModel : ISimulationModel
@@ -40,9 +40,9 @@ public class MagnetismModel : ISimulationModel
     }
 
     /// <summary>
-    /// Executes magnetism force calculation on entities that have IsMetal and Mass.
+    /// Executes magnetism force calculation on entities that have MagnetismForce and Mass.
     /// Calculates magnetic force, outputs as MagnetismForce.
-    /// Only metallic entities (those with IsMetal property) are affected.
+    /// Only metallic entities (those with MagnetismForce property) are affected.
     /// </summary>
     public async Task<Dictionary<string, List<object>>> ExecuteAsync(PropertyArrayBundle inputBundle)
     {
@@ -53,7 +53,7 @@ public class MagnetismModel : ISimulationModel
         {
             // Extract input arrays
             var massValues = inputBundle.Arrays.ContainsKey("Mass") ? inputBundle.Arrays["Mass"] : new List<object>();
-            // Note: IsMetal array exists but we don't need to read values - presence in ValidEntityIds means it's metallic
+            // Note: MagnetismForce array exists as a filter - presence in ValidEntityIds means the entity is metallic
 
             // Output array for magnetic forces
             var outputForces = new List<object>();
@@ -73,7 +73,7 @@ public class MagnetismModel : ISimulationModel
             {
                 // Get the indices of this entity in each property array
                 int massIndex = inputBundle.EntityToPropertyIndices[entityId]["Mass"];
-                // IsMetal index exists but we don't need it - entity presence confirms it's metallic
+                // MagnetismForce index exists but we don't need it - entity presence confirms it's metallic
 
                 // Extract mass
                 var mass = massIndex < massValues.Count

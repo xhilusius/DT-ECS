@@ -1,9 +1,11 @@
 namespace DataStorage.Interfaces;
 
+using DataStorage.RepositoryManager;
+
 /// <summary>
 /// Interface for managing repository operations using the EPS (Entity-Property-Service) pattern.
 /// The repository stores properties organized by property type as arrays.
-/// The manager handles intelligent queries using the ArchetypeManager to fulfill service requirements.
+/// The manager handles intelligent queries using the ArchetypeMapper to fulfill service requirements.
 /// </summary>
 public interface IRepositoryManager
 {
@@ -17,8 +19,9 @@ public interface IRepositoryManager
 
     /// <summary>
     /// Adds a single property value to the list for a property type.
+    /// Returns the index where the property was added.
     /// </summary>
-    Task AddPropertyAsync(string propertyType, object propertyValue);
+    Task<int> AddPropertyAsync(string propertyType, object propertyValue);
 
     /// <summary>
     /// Replaces the entire list of properties for a property type.
@@ -79,9 +82,17 @@ public interface IRepositoryManager
 
     /// <summary>
     /// Query Pattern 2: Gets all property lists defined in a specific archetype.
-    /// Returns a dictionary mapping property type to its list of values.
+    /// Returns property arrays and entity-to-index mappings for the archetype.
     /// </summary>
-    Task<Dictionary<string, List<object>>> GetPropertiesForArchetypeAsync(string archetypeId);
+    Task<ArchetypeQueryResult> GetPropertiesForArchetypeAsync(string archetypeId);
+
+    /// <summary>
+    /// Query Pattern 2: Gets all property lists defined in a specific archetype plus optional properties.
+    /// Returns property arrays and entity-to-index mappings for the archetype with optional indices when present.
+    /// </summary>
+    Task<ArchetypeQueryResult> GetPropertiesForArchetypeWithOptionalAsync(
+        string archetypeId,
+        IEnumerable<string>? optionalPropertyTypes);
 
     /// <summary>
     /// Deletes all properties of types defined in an archetype.
@@ -110,15 +121,31 @@ public interface IRepositoryManager
     #region Archetype Management
 
     /// <summary>
-    /// Registers an archetype with the archetype manager.
+    /// Registers an archetype with the archetype mapper.
     /// Archetypes define property combinations required by services.
     /// </summary>
     Task RegisterArchetypeAsync(string archetypeId, string archetypeName, HashSet<string> propertyTypes, string? description = null);
 
     /// <summary>
-    /// Gets access to the archetype manager for registering service requirements.
+    /// Gets access to the archetype mapper for registering service requirements.
     /// </summary>
-    Task<object?> GetArchetypeManagerAsync();
+    Task<object?> GetArchetypeMapperAsync();
+
+    #endregion
+
+    #region Cross-Subsystem Synchronization
+
+    /// <summary>
+    /// Synchronizes a new entity registration from the Simulation subsystem.
+    /// Updates the Data-Storage EntityMapper with entity metadata and property indices.
+    /// </summary>
+    void SyncEntityRegistration(int entityId, string name, IEnumerable<string> propertyTypes, Dictionary<string, int> propertyIndices, string? description = null);
+
+    /// <summary>
+    /// Synchronizes a property addition to an entity from the Simulation subsystem.
+    /// Updates the Data-Storage EntityMapper with the new property and its index.
+    /// </summary>
+    void SyncPropertyAddition(int entityId, string propertyType, int index);
 
     #endregion
 }

@@ -9,7 +9,7 @@ using DataStorage.Interfaces;
 /// Gravity simulation model that calculates gravitational forces on objects.
 /// Part of a parallel force composition system where multiple models calculate forces independently.
 /// 
-/// Input properties:  ["Mass"]
+/// Input properties:  ["Mass", "GravityForce"]
 /// Output properties: ["GravityForce"]
 /// 
 /// Physics:

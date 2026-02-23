@@ -7,7 +7,8 @@
     "Radius": "m",
     "GravityForce": "N",
     "DragForce": "N",
-    "MagnetismForce": "N"
+    "MagnetismForce": "N",
+    "WindForce": "N"
   },
   "propertyVisibility": {
     "alwaysShow": [
@@ -15,12 +16,12 @@
       "CurrentSpeed",
       "GravityForce",
       "DragForce",
-      "MagnetismForce"
+      "MagnetismForce",
+      "WindForce"
     ],
     "showOnce": [
       "Mass",
-      "Radius",
-      "IsMetal"
+      "Radius"
     ],
     "intermediate": [
       "Displacement"

@@ -25,6 +25,7 @@ public class SimulationModelFactory
             "GravityModel" => new GravityModel(timeStepSeconds),
             "DragModel" => new DragModel(),
             "MagnetismModel" => new MagnetismModel(timeStepSeconds),
+            "WindForceModel" => new WindForceModel(),
             "PhysicsIntegrator" => new PhysicsIntegrator(timeStepSeconds),
             "PositionModel" => new PositionModel(),
             _ => throw new ArgumentException($"Unknown simulation model: {modelName}")

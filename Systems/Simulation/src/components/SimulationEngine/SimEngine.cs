@@ -78,7 +78,10 @@ public class SimEngine
                         throw new InvalidOperationException($"Service {serviceDescriptor.ServiceName} has null Service reference");
 
                     // Step 1: Fetch inputs for this service
-                    var inputBundle = await _stateManager.GetPropertiesByArchetypeAsync(serviceDescriptor.ServiceName);
+                    var inputBundle = await _stateManager.GetPropertiesByArchetypeWithOptionalAsync(
+                        serviceDescriptor.ServiceName,
+                        serviceDescriptor.OptionalInputProperties
+                    );
 
                     // Step 2: Execute the service (this runs in parallel with other services)
                     var outputData = await service.ExecuteAsync(inputBundle);
@@ -113,7 +116,10 @@ public class SimEngine
                         throw new InvalidOperationException($"Service {serviceDescriptor.ServiceName} has null Service reference");
 
                     // Step 1: Request StateManager to fetch all input properties for this service's archetype
-                    var inputBundle = await _stateManager.GetPropertiesByArchetypeAsync(serviceDescriptor.ServiceName);
+                    var inputBundle = await _stateManager.GetPropertiesByArchetypeWithOptionalAsync(
+                        serviceDescriptor.ServiceName,
+                        serviceDescriptor.OptionalInputProperties
+                    );
 
                     // Step 2: Execute the service with the input bundle
                     var outputData = await service.ExecuteAsync(inputBundle);

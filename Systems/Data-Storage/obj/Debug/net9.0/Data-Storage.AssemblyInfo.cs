@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Data-Storage")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c64aeebf91bb219d928419f169a229556eca6237")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b4fe429682e0addc31134c971c9ac6daf518a12d")]
 [assembly: System.Reflection.AssemblyProductAttribute("Data-Storage")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Data-Storage")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

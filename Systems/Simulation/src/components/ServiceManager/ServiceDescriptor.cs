@@ -33,11 +33,16 @@ public class ServiceDescriptor
     public List<string> InputProperties { get; set; }
 
     /// <summary>
+    /// Optional input properties to fetch when available (do not gate execution).
+    /// </summary>
+    public List<string> OptionalInputProperties { get; set; }
+
+    /// <summary>
     /// List of property names this service produces as output (created/modified by execution).
     /// </summary>
     public List<string> OutputProperties { get; set; }
 
-    public ServiceDescriptor(string serviceName, ISimulationModel service, List<string> inputProperties, List<string> outputProperties)
+    public ServiceDescriptor(string serviceName, ISimulationModel service, List<string> inputProperties, List<string> outputProperties, List<string>? optionalInputProperties = null)
     {
         if (string.IsNullOrWhiteSpace(serviceName))
             throw new ArgumentException("Service name cannot be null or empty", nameof(serviceName));
@@ -47,6 +52,7 @@ public class ServiceDescriptor
         ServiceName = serviceName;
         Service = service;
         InputProperties = inputProperties ?? new List<string>();
+        OptionalInputProperties = optionalInputProperties ?? new List<string>();
         OutputProperties = outputProperties ?? new List<string>();
     }
 }
