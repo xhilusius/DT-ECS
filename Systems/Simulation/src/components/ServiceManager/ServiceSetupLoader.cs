@@ -117,6 +117,21 @@ public class ServiceSetupConfiguration
     /// </summary>
     [JsonPropertyName("parallel")]
     public bool Parallel { get; set; } = false;
+
+    /// <summary>
+    /// Step delay in milliseconds to pace simulation execution for visualization.
+    /// When > 0: Each simulation step waits this long before executing the next step.
+    /// When 0: Steps execute as fast as possible (no artificial delay).
+    /// Default: 0 (maximum speed)
+    /// 
+    /// USAGE: Set to 1000 to make each step take ~1 second, pacing visualization
+    /// to run in real-time even when simulation runs much faster than 1s/step.
+    /// 
+    /// TIMING: The delay is applied AFTER the step completes.
+    /// If the step takes longer than the delay, the next step starts immediately.
+    /// </summary>
+    [JsonPropertyName("stepDelayMs")]
+    public int StepDelayMs { get; set; } = 0;
 }
 
 /// <summary>

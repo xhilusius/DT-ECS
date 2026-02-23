@@ -4,6 +4,13 @@ using System.Numerics;
 using DataStorage.Interfaces;
 using Simulation.EntityManager;
 
+// MVP DEPENDENCY: VisualizationMapper for external visualization tool integration
+// This dependency is OPTIONAL and LOOSELY COUPLED:
+// - VisualizationMapper can be null (no visualization)
+// - All visualization calls are no-ops if mapper is not set
+// - Future: Could be replaced with IVisualizationService interface for better decoupling
+// - Visualization project must be available at compile time for this MVP
+
 /// <summary>
 /// Manages all state access and reporting for the simulation.
 /// Acts as an intermediary between SimEngine and the underlying RepositoryManager.
@@ -17,18 +24,28 @@ using Simulation.EntityManager;
 /// - Clear all properties when resetting
 /// - Handle all storage operations (SimEngine doesn't access repository directly)
 /// - Query EntityManager to map array indices to entities
+/// - MVP: Notify visualization system of entity creations and state updates
 /// </summary>
 public class StateManager
 {
     private readonly IRepositoryManager _repositoryManager;
     private readonly EntityManager _entityManager;
+    
+    /// <summary>
+    /// MVP DEPENDENCY: Optional visualization mapper for external tools.
+    /// When null, no visualization updates are sent (safe graceful degradation).
+    /// Can be set/updated at runtime via SetVisualizationMapper().
+    /// FUTURE CHANGE: Could be replaced with IVisualizationService interface.
+    /// </summary>
+    private VisualizationMapper? _visualizationMapper = null;
+    
     private Dictionary<string, string> _propertyUnits = new();
     private HashSet<string>? _alwaysShowProperties;
     private HashSet<string>? _showOnceProperties;
     private HashSet<string>? _intermediateProperties;
     private bool _isFirstReport = true;
 
-    public StateManager(IRepositoryManager repositoryManager, EntityManager entityManager)
+    public StateManager(IRepositoryManager repositoryManager, EntityManager entityManager, VisualizationMapper? visualizationMapper = null)
     {
         if (repositoryManager == null)
             throw new ArgumentNullException(nameof(repositoryManager));
@@ -37,6 +54,7 @@ public class StateManager
 
         _repositoryManager = repositoryManager;
         _entityManager = entityManager;
+        _visualizationMapper = visualizationMapper; // MVP: Optional visualization support
     }
 
     /// <summary>
@@ -346,6 +364,10 @@ public class StateManager
 
             // Mark that the first report has been displayed
             _isFirstReport = false;
+
+            // MVP: Notify visualization system of state update
+            // This is called after each simulation step to send position updates
+            await NotifyStateUpdatedAsync();
         }
         catch (Exception ex)
         {
@@ -430,5 +452,206 @@ public class StateManager
         // Default: show all other properties in first report, none in later reports
         return _isFirstReport;
     }
+
+    #region MVP: Visualization Support
+
+    /// <summary>
+    /// MVP: Set or update the visualization mapper for external visualization tools.
+    /// Can be called at runtime to connect/disconnect visualization without restarting.
+    /// 
+    /// DEPENDENCY: Visualization system is completely optional.
+    /// If mapper is null, all visualization calls become no-ops (safe degradation).
+    /// 
+    /// FUTURE CHANGE: Could be replaced with registry pattern or multiple receivers.
+    /// </summary>
+    public void SetVisualizationMapper(VisualizationMapper? visualizationMapper)
+    {
+        _visualizationMapper = visualizationMapper;
+    }
+
+    /// <summary>
+    /// MVP: Notify visualization system that new entities have been created.
+    /// Called by InteractionController after entities are registered with StateManager.
+    /// 
+    /// DEPENDENCY: Requires Position property to be set.
+    /// Uses Radius if available, defaults to 0.1m otherwise.
+    /// Color is derived from entity ID if not explicitly set (future enhancement).
+    /// </summary>
+    public async Task NotifyEntitiesCreatedAsync(IEnumerable<int> entityIds)
+    {
+        if (_visualizationMapper == null)
+            return; // No visualization configured, skip
+
+        try
+        {
+            var allProperties = await _repositoryManager.GetAllPropertiesAsync();
+            var visualizationData = new List<EntityVisualizationData>();
+
+            foreach (var entityId in entityIds)
+            {
+                if (!_entityManager.GetAllEntityIds().Contains(entityId))
+                    continue;
+
+                var entity = _entityManager.GetEntity(entityId);
+                if (entity == null)
+                    continue;
+
+                var vizData = ExtractEntityVisualizationData(entityId, entity, allProperties);
+                if (vizData.HasValue)
+                {
+                    visualizationData.Add(vizData.Value);
+                }
+            }
+
+            if (visualizationData.Count > 0)
+            {
+                _visualizationMapper.NotifyEntitiesCreated(visualizationData);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Don't crash simulation if visualization fails - graceful degradation
+            Console.WriteLine($"Warning: Visualization notification failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// MVP: Notify visualization system of state updates (positions changed).
+    /// Called after each simulation step in ReportStateAsync.
+    /// 
+    /// DEPENDENCY: Requires Position property.
+    /// Only sends data for entities that have valid Position values.
+    /// </summary>
+    private async Task NotifyStateUpdatedAsync()
+    {
+        if (_visualizationMapper == null)
+            return; // No visualization configured, skip
+
+        try
+        {
+            var allProperties = await _repositoryManager.GetAllPropertiesAsync();
+            var visualizationData = new List<EntityVisualizationData>();
+
+            foreach (var entityId in _entityManager.GetAllEntityIds())
+            {
+                var entity = _entityManager.GetEntity(entityId);
+                if (entity == null)
+                    continue;
+
+                var vizData = ExtractEntityVisualizationData(entityId, entity, allProperties);
+                if (vizData.HasValue)
+                {
+                    visualizationData.Add(vizData.Value);
+                }
+            }
+
+            if (visualizationData.Count > 0)
+            {
+                _visualizationMapper.NotifyStateUpdated(visualizationData);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Don't crash simulation if visualization fails - graceful degradation
+            Console.WriteLine($"Warning: Visualization update failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Notify visualization system to clear all entities.
+    /// Used after a test case completes so the visualization can be reused.
+    /// </summary>
+    public async Task NotifyVisualizationClearedAsync()
+    {
+        if (_visualizationMapper == null)
+            return;
+
+        try
+        {
+            await _visualizationMapper.ClearAllEntitiesAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Visualization clear failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// MVP: Extract visualization data from entity state.
+    /// Collects Position, Radius, and Color for visualization.
+    /// 
+    /// DEPENDENCIES (data requirements):
+    /// - Position: REQUIRED - must exist and be valid Vector3
+    /// - Radius: OPTIONAL - uses entity's Radius property if available
+    /// - Color: OPTIONAL - defaults to Blue if not provided
+    /// 
+    /// Returns null if entity lacks required Position property.
+    /// </summary>
+    private EntityVisualizationData? ExtractEntityVisualizationData(int entityId, Entity entity, Dictionary<string, List<object>> allProperties)
+    {
+        // Entity ID as string for visualization
+        string vizEntityId = $"Entity_{entityId}";
+
+        // Position is REQUIRED for visualization
+        Vector3 position = Vector3.Zero;
+        if (allProperties.ContainsKey("Position"))
+        {
+            int posIndex = _entityManager.GetEntityIndexInProperty(entityId, "Position");
+            if (posIndex >= 0 && posIndex < allProperties["Position"].Count)
+            {
+                var posValue = allProperties["Position"][posIndex];
+                if (posValue is Vector3 pos)
+                {
+                    position = pos;
+                }
+                else
+                {
+                    return null; // Can't visualize without valid position
+                }
+            }
+            else
+            {
+                return null; // Entity doesn't have position
+            }
+        }
+        else
+        {
+            return null; // No position property exists
+        }
+
+        // Radius is OPTIONAL
+        float? radius = null;
+        if (allProperties.ContainsKey("Radius"))
+        {
+            int radiusIndex = _entityManager.GetEntityIndexInProperty(entityId, "Radius");
+            if (radiusIndex >= 0 && radiusIndex < allProperties["Radius"].Count)
+            {
+                var radiusValue = allProperties["Radius"][radiusIndex];
+                if (radiusValue is float f)
+                {
+                    radius = f;
+                }
+            }
+        }
+
+        // Color is OPTIONAL
+        System.Drawing.Color? color = null;
+        if (allProperties.ContainsKey("Color"))
+        {
+            int colorIndex = _entityManager.GetEntityIndexInProperty(entityId, "Color");
+            if (colorIndex >= 0 && colorIndex < allProperties["Color"].Count)
+            {
+                var colorValue = allProperties["Color"][colorIndex];
+                if (colorValue is System.Drawing.Color c)
+                {
+                    color = c;
+                }
+            }
+        }
+
+        return new EntityVisualizationData(vizEntityId, position, radius, color);
+    }
+
+    #endregion
 }
 

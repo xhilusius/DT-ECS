@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Drawing;
 using Simulation;
 using Simulation.Interfaces;
 using Simulation.StateManager;
@@ -30,7 +31,8 @@ public static class TestCases
                             { "Radius", 0.1f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
-                            { "MagnetismForce", new Vector3(0, 0, 0) }
+                            { "MagnetismForce", new Vector3(0, 0, 0) },
+                            { "Color", Color.Red }
                         },
                         Description = "Single ball falling under gravity (1kg, 10cm radius)"
                     }
@@ -78,13 +80,14 @@ public static class TestCases
                         Properties = new Dictionary<string, object>
                         {
                             { "Mass", 0.5f },
-                            { "Position", new Vector3(0, 10, 0) },
+                            { "Position", new Vector3(-2, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
                             { "Radius", 0.2f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
-                            { "MagnetismForce", new Vector3(0, 0, 0) }
+                            { "MagnetismForce", new Vector3(0, 0, 0) },
+                            { "Color", Color.Blue }
                         },
                         Description = "Mass=0.5kg, Radius=0.2m (low mass, moderate drag)"
                     },
@@ -100,7 +103,8 @@ public static class TestCases
                             { "Radius", 0.3f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
-                            { "MagnetismForce", new Vector3(0, 0, 0) }
+                            { "MagnetismForce", new Vector3(0, 0, 0) },
+                            { "Color", Color.Lime }
                         },
                         Description = "Mass=0.5kg, Radius=0.3m (same mass as E1, more drag = SLOWEST)"
                     },
@@ -110,13 +114,14 @@ public static class TestCases
                         Properties = new Dictionary<string, object>
                         {
                             { "Mass", 2.0f },
-                            { "Position", new Vector3(0, 10, 0) },
+                            { "Position", new Vector3(2, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
                             { "Radius", 0.3f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
-                            { "MagnetismForce", new Vector3(0, 0, 0) }
+                            { "MagnetismForce", new Vector3(0, 0, 0) },
+                            { "Color", Color.Yellow }
                         },
                         Description = "Mass=2.0kg, Radius=0.3m (heavier, same drag as E2 = FASTEST)"
                     }
@@ -166,13 +171,14 @@ public static class TestCases
                         Properties = new Dictionary<string, object>
                         {
                             { "Mass", 1.0f },
-                            { "Position", new Vector3(0, 10, 0) },
+                            { "Position", new Vector3(-1, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
                             { "Radius", 0.1f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
-                            { "MagnetismForce", new Vector3(0, 0, 0) }
+                            { "MagnetismForce", new Vector3(0, 0, 0) },
+                            { "Color", Color.Cyan }
                         },
                         Description = "Has all properties: Mass, Position, CurrentSpeed, Radius, Displacement"
                     },
@@ -181,10 +187,11 @@ public static class TestCases
                         Name = "Incomplete entity",
                         Properties = new Dictionary<string, object>
                         {
-                            { "Position", new Vector3(0, 10, 0) },
+                            { "Position", new Vector3(1, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.1f }
+                            { "Radius", 0.1f },
+                            { "Color", Color.Magenta }
                         },
                         Description = "Missing Mass property - will have no behavior"
                     }
@@ -234,14 +241,15 @@ public static class TestCases
                         Properties = new Dictionary<string, object>
                         {
                             { "Mass", 1.0f },
-                            { "Position", new Vector3(0, 10, 0) },
+                            { "Position", new Vector3(-1, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
                             { "Radius", 0.1f },
                             { "IsMetal", true },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
-                            { "MagnetismForce", new Vector3(0, 0, 0) }
+                            { "MagnetismForce", new Vector3(0, 0, 0) },
+                            { "Color", Color.Silver }
                         },
                         Description = "Metallic object - affected by both gravity and magnetic field (upward)"
                     },
@@ -251,13 +259,14 @@ public static class TestCases
                         Properties = new Dictionary<string, object>
                         {
                             { "Mass", 1.0f },
-                            { "Position", new Vector3(0, 10, 0) },
+                            { "Position", new Vector3(1, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
                             { "Radius", 0.1f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
-                            { "MagnetismForce", new Vector3(0, 0, 0) }
+                            { "MagnetismForce", new Vector3(0, 0, 0) },
+                            { "Color", Color.Orange }
                             // No IsMetal property - absence means non-metallic
                         },
                         Description = "Non-metallic object - affected by gravity only (no IsMetal tag)"
@@ -304,7 +313,7 @@ public static class TestCases
         }
     }
 
-    public static async Task RunByIndexAsync(int index)
+    public static async Task<StateManager> RunByIndexAsync(int index, Simulation.StateManager.VisualizationMapper? visualizationMapper = null)
     {
         if (index < 0 || index >= All.Count)
             throw new ArgumentOutOfRangeException(nameof(index), "Invalid test case index.");
@@ -312,10 +321,13 @@ public static class TestCases
         var testCase = All[index];
         
         // Initialize components from test setup data
-        var interactionController = await SimulationInitializer.InitializeFromTestSetupAsync(testCase.Setup);
+        // Pass visualization mapper so entities are sent to external tools during creation
+        var interactionController = await SimulationInitializer.InitializeFromTestSetupAsync(testCase.Setup, visualizationMapper);
         var stateManager = interactionController.GetStateManager();
         
         // Run the test execution logic
         await testCase.ExecutionLogic(interactionController, stateManager);
+
+        return stateManager;
     }
 }

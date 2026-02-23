@@ -5,6 +5,7 @@ D:\Repos\Digital-Twin\Systems\Simulation\bin\Debug\net9.0\Data-Storage.exe
 D:\Repos\Digital-Twin\Systems\Simulation\bin\Debug\net9.0\appsettings.Development.json
 D:\Repos\Digital-Twin\Systems\Simulation\bin\Debug\net9.0\appsettings.json
 D:\Repos\Digital-Twin\Systems\Simulation\bin\Debug\net9.0\src\components\ServiceManager\ServiceSetups\DefaultSetup.json
+D:\Repos\Digital-Twin\Systems\Simulation\bin\Debug\net9.0\src\components\ServiceManager\ServiceSetups\PropertiesConfig.json
 D:\Repos\Digital-Twin\Systems\Simulation\bin\Debug\net9.0\Simulation.staticwebassets.endpoints.json
 D:\Repos\Digital-Twin\Systems\Simulation\bin\Debug\net9.0\Simulation.exe
 D:\Repos\Digital-Twin\Systems\Simulation\bin\Debug\net9.0\Simulation.deps.json
@@ -36,4 +37,3 @@ D:\Repos\Digital-Twin\Systems\Simulation\obj\Debug\net9.0\refint\Simulation.dll
 D:\Repos\Digital-Twin\Systems\Simulation\obj\Debug\net9.0\Simulation.pdb
 D:\Repos\Digital-Twin\Systems\Simulation\obj\Debug\net9.0\Simulation.genruntimeconfig.cache
 D:\Repos\Digital-Twin\Systems\Simulation\obj\Debug\net9.0\ref\Simulation.dll
-D:\Repos\Digital-Twin\Systems\Simulation\bin\Debug\net9.0\src\components\ServiceManager\ServiceSetups\PropertiesConfig.json

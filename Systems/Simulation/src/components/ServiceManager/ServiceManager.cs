@@ -36,6 +36,7 @@ public class ServiceManager
     private readonly object _stateLock = new object();
     private int _stepCounter = 0;
     private bool _parallelExecution = false;
+    private int _stepDelayMs = 0;
     
     /// <summary>
     /// Maps each service name to its batch index.
@@ -196,10 +197,10 @@ public class ServiceManager
             }
         }
     }
-
     /// <summary>
     /// Executes exactly one simulation step (all services in dependency order) and automatically pauses.
     /// Used for step-by-step debugging or manual control.
+    /// Respects step delay configuration for visualization pacing.
     /// </summary>
     public async Task ExecuteOneStepAsync()
     {
@@ -213,8 +214,23 @@ public class ServiceManager
                 _stepCounter = 0;
         }
 
+        // Record step start time if step delay is configured
+        var stepStartTime = _stepDelayMs > 0 ? (DateTime?)DateTime.UtcNow : null;
+
         // Execute one simulation step
         await ExecuteSimulationStepAsync();
+
+        // Apply step delay for visualization pacing if configured
+        if (_stepDelayMs > 0 && stepStartTime.HasValue)
+        {
+            var elapsedMs = (DateTime.UtcNow - stepStartTime.Value).TotalMilliseconds;
+            var remainingDelayMs = _stepDelayMs - (int)elapsedMs;
+
+            if (remainingDelayMs > 0)
+            {
+                await Task.Delay(remainingDelayMs);
+            }
+        }
 
         // Ensure we're in paused state
         lock (_stateLock)
@@ -251,7 +267,7 @@ public class ServiceManager
 
     /// <summary>
     /// Runs the simulation loop, repeatedly executing all services in dependency order.
-    /// Respects pause/stop requests.
+    /// Respects pause/stop requests and step delay configuration for visualization pacing.
     /// </summary>
     private async Task RunSimulationLoopAsync(CancellationToken cancellationToken)
     {
@@ -272,11 +288,28 @@ public class ServiceManager
                 break;
             }
 
+            // Record step start time if step delay is configured
+            var stepStartTime = _stepDelayMs > 0 ? (DateTime?)DateTime.UtcNow : null;
+
             // Execute one simulation step
             await ExecuteSimulationStepAsync();
 
-            // Delay for frame rate control (~60 FPS)
-            await Task.Delay(16, cancellationToken);
+            // Apply step delay for visualization pacing if configured
+            if (_stepDelayMs > 0 && stepStartTime.HasValue)
+            {
+                var elapsedMs = (DateTime.UtcNow - stepStartTime.Value).TotalMilliseconds;
+                var remainingDelayMs = _stepDelayMs - (int)elapsedMs;
+
+                if (remainingDelayMs > 0)
+                {
+                    await Task.Delay(remainingDelayMs, cancellationToken);
+                }
+            }
+            else
+            {
+                // No step delay: small delay for frame rate control (~60 FPS)
+                await Task.Delay(16, cancellationToken);
+            }
         }
     }
 
@@ -375,8 +408,9 @@ public class ServiceManager
             // Load properties configuration (units and visibility settings)
             var propertiesConfig = ServiceSetupLoader.LoadPropertiesConfiguration();
 
-            // Store the parallel execution setting
+            // Store the parallel execution setting and step delay
             _parallelExecution = config.Parallel;
+            _stepDelayMs = config.StepDelayMs;
 
             // Create a mapping of model names to their configurations for easy lookup
             var modelConfigMap = config.SimulationModels.ToDictionary(m => m.Name, m => m);

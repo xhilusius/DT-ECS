@@ -37,6 +37,7 @@
     ["PhysicsIntegrator"],
     ["PositionModel"]
   ],
-  "parallel": true
+  "parallel": true,
+  "stepDelayMs": 1000
 }
 

@@ -171,6 +171,7 @@ public class InteractionController : IInteractionController
     /// Creates a new entity with specified properties and metadata.
     /// User-facing method for entity creation through the interaction controller.
     /// Orchestrates EntityManager (metadata) and StateManager (storage).
+    /// MVP: Also notifies visualization system of entity creation.
     /// </summary>
     /// <param name="name">Human-readable name for the entity</param>
     /// <param name="propertyDefaults">Dictionary of property type → initial value</param>
@@ -201,6 +202,10 @@ public class InteractionController : IInteractionController
                 // Store updated property array
                 await _stateManager.SetPropertiesByTypeAsync(propertyType, currentValues);
             }
+
+            // Step 3: MVP DEPENDENCY - Notify visualization system of new entity
+            // This allows external visualization tool to register the entity
+            await _stateManager.NotifyEntitiesCreatedAsync(new[] { creationInfo.Entity.Id });
 
             return creationInfo.Entity;
         }

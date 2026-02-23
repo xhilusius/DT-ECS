@@ -17,10 +17,14 @@ public static class SimulationInitializer
     /// <summary>
     /// Creates and initializes all simulation components from a test setup definition.
     /// Components receive their data at initialization time.
+    /// Connects visualization mapper so entities are sent to external tools (Godot, etc) immediately.
     /// </summary>
     /// <param name="testSetup">The test setup definition containing configuration and entity data</param>
+    /// <param name="visualizationMapper">Optional visualization mapper for sending updates to external tools</param>
     /// <returns>InteractionController ready to run the simulation</returns>
-    public static async Task<global::Simulation.InteractionController.InteractionController> InitializeFromTestSetupAsync(TestSetup testSetup)
+    public static async Task<global::Simulation.InteractionController.InteractionController> InitializeFromTestSetupAsync(
+        TestSetup testSetup,
+        Simulation.StateManager.VisualizationMapper? visualizationMapper = null)
     {
         Console.WriteLine("╔═════════════════════════════════════════════════════════════╗");
         Console.WriteLine("║              INITIALIZING SIMULATION COMPONENTS             ║");
@@ -39,6 +43,13 @@ public static class SimulationInitializer
 
         Console.WriteLine("[3/6] Initializing State Manager...");
         var stateManager = new global::Simulation.StateManager.StateManager(repositoryManager, entityManager);
+        
+        // Connect visualization mapper if provided (for Godot, Unity, etc)
+        if (visualizationMapper != null)
+        {
+            stateManager.SetVisualizationMapper(visualizationMapper);
+            Console.WriteLine("   📡 Visualization mapper connected - entities will be sent to external tool");
+        }
 
         Console.WriteLine("[4/6] Initializing Simulation Engine...");
         var simEngine = new SimEngine(stateManager);
