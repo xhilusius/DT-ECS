@@ -135,6 +135,17 @@ public class ServiceSetupConfiguration
     /// </summary>
     [JsonPropertyName("stepDelayMs")]
     public int StepDelayMs { get; set; } = 0;
+
+    /// <summary>
+    /// Number of simulation steps to execute in test cases.
+    /// This controls how many iterations the simulation runs before stopping.
+    /// Default: 10
+    /// 
+    /// USAGE: Test cases can read this value to determine how many steps to execute,
+    /// allowing configuration-driven test duration without hardcoding step counts.
+    /// </summary>
+    [JsonPropertyName("simulationSteps")]
+    public int SimulationSteps { get; set; } = 10;
 }
 
 /// <summary>

@@ -3,6 +3,7 @@ using System.Drawing;
 using Simulation;
 using Simulation.Interfaces;
 using Simulation.StateManager;
+using Simulation.ServiceManager;
 
 public static class TestCases
 {
@@ -28,7 +29,7 @@ public static class TestCases
                             { "Position", new Vector3(0, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.1f },                            
+                            { "Radius", 0.2f },                            
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "Color", Color.Red }
                         },
@@ -45,8 +46,12 @@ public static class TestCases
 
                 try
                 {
-                    // Run simulation for 10 steps to see gravity and terminal velocity effects
-                    for (int step = 1; step <= 10; step++)
+                    // Load configuration to get simulation step count
+                    var config = ServiceSetupLoader.LoadConfiguration("DefaultSetup.json");
+                    int simulationSteps = config.SimulationSteps;
+
+                    // Run simulation for configured number of steps to see gravity and terminal velocity effects
+                    for (int step = 1; step <= simulationSteps; step++)
                     {
                         await controller.OneStepAsync();
                     }
@@ -81,12 +86,12 @@ public static class TestCases
                             { "Position", new Vector3(-2, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.2f },
+                            { "Radius", 0.4f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
                             { "Color", Color.Blue }
                         },
-                        Description = "Mass=0.5kg, Radius=0.2m (low mass, moderate drag)"
+                        Description = "Mass=0.5kg, Radius=0.4m (low mass, moderate drag)"
                     },
                     new()
                     {
@@ -97,12 +102,12 @@ public static class TestCases
                             { "Position", new Vector3(0, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.3f },
+                            { "Radius", 0.6f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
                             { "Color", Color.Lime }
                         },
-                        Description = "Mass=0.5kg, Radius=0.3m (same mass as E1, more drag = SLOWEST)"
+                        Description = "Mass=0.5kg, Radius=0.6m (same mass as E1, more drag = SLOWEST)"
                     },
                     new()
                     {
@@ -113,12 +118,12 @@ public static class TestCases
                             { "Position", new Vector3(2, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.3f },
+                            { "Radius", 0.6f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
                             { "Color", Color.Yellow }
                         },
-                        Description = "Mass=2.0kg, Radius=0.3m (heavier, same drag as E2 = FASTEST)"
+                        Description = "Mass=2.0kg, Radius=0.6m (heavier, same drag as E2 = FASTEST)"
                     }
                 }
             },
@@ -133,8 +138,12 @@ public static class TestCases
 
                 try
                 {
-                    // Run simulation for 10 steps to observe clear differences
-                    for (int step = 1; step <= 10; step++)
+                    // Load configuration to get simulation step count
+                    var config = ServiceSetupLoader.LoadConfiguration("DefaultSetup.json");
+                    int simulationSteps = config.SimulationSteps;
+
+                    // Run simulation for configured number of steps to observe clear differences
+                    for (int step = 1; step <= simulationSteps; step++)
                     {
                         await controller.OneStepAsync();
                     }
@@ -169,7 +178,7 @@ public static class TestCases
                             { "Position", new Vector3(-1, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.1f },
+                            { "Radius", 0.2f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
                             { "Color", Color.Cyan }
@@ -184,7 +193,7 @@ public static class TestCases
                             { "Position", new Vector3(1, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.1f },
+                            { "Radius", 0.2f },
                             { "Color", Color.Magenta }
                         },
                         Description = "Missing Mass property - will have no behavior"
@@ -202,8 +211,12 @@ public static class TestCases
 
                 try
                 {
-                    // Run simulation for 10 steps
-                    for (int step = 1; step <= 10; step++)
+                    // Load configuration to get simulation step count
+                    var config = ServiceSetupLoader.LoadConfiguration("DefaultSetup.json");
+                    int simulationSteps = config.SimulationSteps;
+
+                    // Run simulation for configured number of steps
+                    for (int step = 1; step <= simulationSteps; step++)
                     {
                         await controller.OneStepAsync();
                     }
@@ -238,7 +251,7 @@ public static class TestCases
                             { "Position", new Vector3(-1, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.1f },                            
+                            { "Radius", 0.2f },                            
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },                           
                             { "MagnetismForce", new Vector3(0, 0, 0) },
@@ -255,7 +268,7 @@ public static class TestCases
                             { "Position", new Vector3(1, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.1f },
+                            { "Radius", 0.2f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
                             { "Color", Color.Orange }
@@ -275,8 +288,12 @@ public static class TestCases
 
                 try
                 {
-                    // Run simulation for 10 steps to see magnetic effect
-                    for (int step = 1; step <= 10; step++)
+                    // Load configuration to get simulation step count
+                    var config = ServiceSetupLoader.LoadConfiguration("DefaultSetup.json");
+                    int simulationSteps = config.SimulationSteps;
+
+                    // Run simulation for configured number of steps to see magnetic effect
+                    for (int step = 1; step <= simulationSteps; step++)
                     {
                         await controller.OneStepAsync();
                     }
@@ -311,13 +328,13 @@ public static class TestCases
                             { "Position", new Vector3(-1.5f, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.4f },
+                            { "Radius", 0.8f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
                             { "WindForce", new Vector3(0, 0, 0) },
                             { "Color", Color.DeepSkyBlue }
                         },
-                        Description = "Mass=1.0kg, Radius=0.4m - large cross-section, significantly affected by wind"
+                        Description = "Mass=1.0kg, Radius=0.8m - large cross-section, significantly affected by wind"
                     },
                     new()
                     {
@@ -328,13 +345,13 @@ public static class TestCases
                             { "Position", new Vector3(1.5f, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.05f },
+                            { "Radius", 0.1f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
                             { "WindForce", new Vector3(0, 0, 0) },
                             { "Color", Color.Turquoise }
                         },
-                        Description = "Mass=1.0kg, Radius=0.05m - small cross-section, minimal wind effect"
+                        Description = "Mass=1.0kg, Radius=0.1m - small cross-section, minimal wind effect"
                     }
                 }
             },
@@ -349,8 +366,12 @@ public static class TestCases
 
                 try
                 {
-                    // Run simulation for 10 steps to observe wind effect differences
-                    for (int step = 1; step <= 10; step++)
+                    // Load configuration to get simulation step count
+                    var config = ServiceSetupLoader.LoadConfiguration("DefaultSetup.json");
+                    int simulationSteps = config.SimulationSteps;
+
+                    // Run simulation for configured number of steps to observe wind effect differences
+                    for (int step = 1; step <= simulationSteps; step++)
                     {
                         await controller.OneStepAsync();
                     }
@@ -385,7 +406,7 @@ public static class TestCases
                             { "Position", new Vector3(-2, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.15f },
+                            { "Radius", 0.3f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
                             { "Color", Color.Red }
@@ -401,7 +422,7 @@ public static class TestCases
                             { "Position", new Vector3(0, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.15f },
+                            { "Radius", 0.3f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
                             { "MagnetismForce", new Vector3(0, 0, 0) },
@@ -418,7 +439,7 @@ public static class TestCases
                             { "Position", new Vector3(2, 10, 0) },
                             { "Displacement", new Vector3(0, 0, 0) },
                             { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.2f },
+                            { "Radius", 0.4f },
                             { "GravityForce", new Vector3(0, 0, 0) },
                             { "DragForce", new Vector3(0, 0, 0) },
                             { "MagnetismForce", new Vector3(0, 0, 0) },
@@ -441,8 +462,12 @@ public static class TestCases
 
                 try
                 {
-                    // Run simulation for 10 steps to observe different force interactions
-                    for (int step = 1; step <= 10; step++)
+                    // Load configuration to get simulation step count
+                    var config = ServiceSetupLoader.LoadConfiguration("DefaultSetup.json");
+                    int simulationSteps = config.SimulationSteps;
+
+                    // Run simulation for configured number of steps to observe different force interactions
+                    for (int step = 1; step <= simulationSteps; step++)
                     {
                         await controller.OneStepAsync();
                     }

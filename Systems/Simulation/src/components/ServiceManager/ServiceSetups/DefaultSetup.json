@@ -2,9 +2,13 @@
   "name": "Default Gravity and Position Simulation",
   "description": "Simulation with parallel force composition: Force models run in parallel, PhysicsIntegrator sums forces",
   "timeStep": {
-    "value": 100,
+    "value": 10,
     "unit": "ms"
   },
+  "parallel": true,
+  "stepDelayMs": 10,
+  "simulationSteps": 500,
+
   "simulationModels": [
     {
       "name": "GravityModel",
@@ -42,8 +46,6 @@
     ["GravityModel", "DragModel", "MagnetismModel", "WindForceModel"],
     ["PhysicsIntegrator"],
     ["PositionModel"]
-  ],
-  "parallel": true,
-  "stepDelayMs": 1000
+  ]
 }
 
