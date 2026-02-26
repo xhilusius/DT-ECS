@@ -22,10 +22,11 @@ using DataStorage.Interfaces;
 /// The gravitational force is output independently and summed by PhysicsIntegrator
 /// with forces from other models (e.g., DragModel, MagnetismModel).
 /// This enables true parallel execution of force models on multi-core systems.
+/// Uses double precision for GravityForce to handle Earth-scale simulations.
 /// </summary>
 public class GravityModel : ISimulationModel
 {
-    private const float GravitationalAcceleration = 9.81f; // m/s² (Earth's gravity)
+    private const double GravitationalAcceleration = 9.81; // m/s² (Earth's gravity)
 
     public GravityModel(float timeStepSeconds)
     {
@@ -68,8 +69,8 @@ public class GravityModel : ISimulationModel
                     ? massValues[massIndex] as float? ?? 1.0f
                     : 1.0f;
 
-                // Calculate gravitational force: F_gravity = mass * g
-                Vector3 gravityForce = new Vector3(0, -mass * GravitationalAcceleration, 0);
+                // Calculate gravitational force: F_gravity = mass * g (downward in Y direction)
+                double[] gravityForce = new double[] { 0, -mass * GravitationalAcceleration, 0 };
                 outputForces.Add(gravityForce);
             }
 

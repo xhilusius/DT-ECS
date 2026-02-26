@@ -1,5 +1,9 @@
 using System.Numerics;
 using System.Drawing;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.IO;
+using System.Linq;
 using Simulation;
 using Simulation.Interfaces;
 using Simulation.StateManager;
@@ -9,500 +13,45 @@ public static class TestCases
 {
     public record TestCase(string Name, TestSetup Setup, Func<IInteractionController, StateManager, Task> ExecutionLogic);
 
-    public static IReadOnlyList<TestCase> All { get; } = new List<TestCase>
+    private record TestCaseConfigFile
     {
-        new(
-            "Single entity: gravity and positioning",
-            // Setup data
-            new TestSetup
-            {
-                ConfigurationFile = "DefaultSetup.json",
-                Description = "Single entity falling under gravity with terminal velocity",
-                Entities = new List<EntityDefinition>
-                {
-                    new()
-                    {
-                        Name = "Ball",
-                        Properties = new Dictionary<string, object>
-                        {
-                            { "Mass", 1.0f },
-                            { "Position", new Vector3(0, 50, 0) },
-                            { "Displacement", new Vector3(0, 0, 0) },
-                            { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.2f },                            
-                            { "GravityForce", new Vector3(0, 0, 0) },
-                            { "Color", Color.Red }
-                        },
-                        Description = "Non-metallic, no wind (missing MagnetismForce and WindForce properties) - gravity only"
-                    }
-                }
-            },
-            // Execution logic
-            async (controller, stateManager) =>
-            {
-                Console.WriteLine("╔═════════════════════════════════════════════════════════════╗");
-                Console.WriteLine("║       TEST CASE 1: Single Entity - Gravity & Positioning    ║");
-                Console.WriteLine("╚═════════════════════════════════════════════════════════════╝\n");
+        [JsonPropertyName("testCases")]
+        public required List<TestCaseConfig> TestCases { get; init; }
+    }
 
-                try
-                {
-                    // Load configuration to get simulation step count
-                    var config = ServiceSetupLoader.LoadConfiguration("DefaultSetup.json");
-                    int simulationSteps = config.SimulationSteps;
+    private record TestCaseConfig
+    {
+        [JsonPropertyName("name")]
+        public required string Name { get; init; }
 
-                    // Run simulation for configured number of steps to see gravity and terminal velocity effects
-                    for (int step = 1; step <= simulationSteps; step++)
-                    {
-                        await controller.OneStepAsync();
-                    }
+        [JsonPropertyName("configurationFile")]
+        public required string ConfigurationFile { get; init; }
 
-                    // Stop simulation
-                    await controller.StopAsync();
+        [JsonPropertyName("description")]
+        public required string Description { get; init; }
 
-                    Console.WriteLine("✓ Test case completed successfully!\n");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"✗ Test case failed: {ex.Message}");
-                    Console.WriteLine($"Stack Trace: {ex.StackTrace}");
-                }
-            }
-        ),
-        new(
-            "Three entities: mass and radius variations",
-            // Setup data
-            new TestSetup
-            {
-                ConfigurationFile = "DefaultSetup.json",
-                Description = "Three entities with different mass/radius combinations showing terminal velocity differences",
-                Entities = new List<EntityDefinition>
-                {
-                    new()
-                    {
-                        Name = "Entity 1 (small radius)",
-                        Properties = new Dictionary<string, object>
-                        {
-                            { "Mass", 0.5f },
-                            { "Position", new Vector3(-2, 50, 0) },
-                            { "Displacement", new Vector3(0, 0, 0) },
-                            { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.4f },
-                            { "GravityForce", new Vector3(0, 0, 0) },
-                            { "DragForce", new Vector3(0, 0, 0) },
-                            { "Color", Color.Blue }
-                        },
-                        Description = "Mass=0.5kg, Radius=0.4m (low mass, moderate drag)"
-                    },
-                    new()
-                    {
-                        Name = "Entity 2 (large radius)",
-                        Properties = new Dictionary<string, object>
-                        {
-                            { "Mass", 0.5f },
-                            { "Position", new Vector3(0, 50, 0) },
-                            { "Displacement", new Vector3(0, 0, 0) },
-                            { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.6f },
-                            { "GravityForce", new Vector3(0, 0, 0) },
-                            { "DragForce", new Vector3(0, 0, 0) },
-                            { "Color", Color.Lime }
-                        },
-                        Description = "Mass=0.5kg, Radius=0.6m (same mass as E1, more drag = SLOWEST)"
-                    },
-                    new()
-                    {
-                        Name = "Entity 3 (heavy)",
-                        Properties = new Dictionary<string, object>
-                        {
-                            { "Mass", 2.0f },
-                            { "Position", new Vector3(2, 50, 0) },
-                            { "Displacement", new Vector3(0, 0, 0) },
-                            { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.6f },
-                            { "GravityForce", new Vector3(0, 0, 0) },
-                            { "DragForce", new Vector3(0, 0, 0) },
-                            { "Color", Color.Yellow }
-                        },
-                        Description = "Mass=2.0kg, Radius=0.6m (heavier, same drag as E2 = FASTEST)"
-                    }
-                }
-            },
-            // Execution logic
-            async (controller, stateManager) =>
-            {
-                Console.WriteLine("╔═════════════════════════════════════════════════════════════╗");
-                Console.WriteLine("║  TEST CASE 2: Three Entities - Mass & Radius Variations     ║");
-                Console.WriteLine("║  E1 & E2: same mass, different radius                       ║");
-                Console.WriteLine("║  E2 & E3: same radius, different mass                       ║");
-                Console.WriteLine("╚═════════════════════════════════════════════════════════════╝\n");
+        [JsonPropertyName("headerLines")]
+        public required List<string> HeaderLines { get; init; }
 
-                try
-                {
-                    // Load configuration to get simulation step count
-                    var config = ServiceSetupLoader.LoadConfiguration("DefaultSetup.json");
-                    int simulationSteps = config.SimulationSteps;
+        [JsonPropertyName("entities")]
+        public required List<EntityConfig> Entities { get; init; }
+    }
 
-                    // Run simulation for configured number of steps to observe clear differences
-                    for (int step = 1; step <= simulationSteps; step++)
-                    {
-                        await controller.OneStepAsync();
-                    }
+    private record EntityConfig
+    {
+        [JsonPropertyName("name")]
+        public required string Name { get; init; }
 
-                    // Stop simulation
-                    await controller.StopAsync();
+        [JsonPropertyName("description")]
+        public string? Description { get; init; }
 
-                    Console.WriteLine("✓ Test case completed successfully!\n");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"✗ Test case failed: {ex.Message}");
-                    Console.WriteLine($"Stack Trace: {ex.StackTrace}");
-                }
-            }
-        ),
-        new(
-            "Two entities: one complete, one incomplete",
-            // Setup data
-            new TestSetup
-            {
-                ConfigurationFile = "DefaultSetup.json",
-                Description = "Two entities: one with all properties (simulates), one missing Mass (no behavior)",
-                Entities = new List<EntityDefinition>
-                {
-                    new()
-                    {
-                        Name = "Complete entity",
-                        Properties = new Dictionary<string, object>
-                        {
-                            { "Mass", 1.0f },
-                            { "Position", new Vector3(-1, 50, 0) },
-                            { "Displacement", new Vector3(0, 0, 0) },
-                            { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.2f },
-                            { "GravityForce", new Vector3(0, 0, 0) },
-                            { "DragForce", new Vector3(0, 0, 0) },
-                            { "Color", Color.Cyan }
-                        },
-                        Description = "Has all properties: Mass, Position, CurrentSpeed, Radius, Displacement"
-                    },
-                    new()
-                    {
-                        Name = "Incomplete entity",
-                        Properties = new Dictionary<string, object>
-                        {
-                            { "Position", new Vector3(1, 50, 0) },
-                            { "Displacement", new Vector3(0, 0, 0) },
-                            { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.2f },
-                            { "Color", Color.Magenta }
-                        },
-                        Description = "Missing Mass property - will have no behavior"
-                    }
-                }
-            },
-            // Execution logic
-            async (controller, stateManager) =>
-            {
-                Console.WriteLine("╔═════════════════════════════════════════════════════════════╗");
-                Console.WriteLine("║  TEST CASE 3: Two Entities - Complete vs Incomplete         ║");
-                Console.WriteLine("║  E1: has all required properties (will simulate)            ║");
-                Console.WriteLine("║  E2: missing Mass (will NOT simulate)                       ║");
-                Console.WriteLine("╚═════════════════════════════════════════════════════════════╝\n");
+        [JsonPropertyName("properties")]
+        public required Dictionary<string, JsonElement> Properties { get; init; }
+    }
 
-                try
-                {
-                    // Load configuration to get simulation step count
-                    var config = ServiceSetupLoader.LoadConfiguration("DefaultSetup.json");
-                    int simulationSteps = config.SimulationSteps;
+    private static readonly Lazy<IReadOnlyList<TestCase>> _all = new(() => LoadAll());
 
-                    // Run simulation for configured number of steps
-                    for (int step = 1; step <= simulationSteps; step++)
-                    {
-                        await controller.OneStepAsync();
-                    }
-
-                    // Stop simulation
-                    await controller.StopAsync();
-
-                    Console.WriteLine("✓ Test case completed successfully!\n");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"✗ Test case failed: {ex.Message}");
-                    Console.WriteLine($"Stack Trace: {ex.StackTrace}");
-                }
-            }
-        ),
-        new(
-            "Magnetism: metallic vs non-metallic entities",
-            // Setup data
-            new TestSetup
-            {
-                ConfigurationFile = "DefaultSetup.json",
-                Description = "Two entities: one metallic (affected by magnetic field), one non-metallic (gravity only)",
-                Entities = new List<EntityDefinition>
-                {
-                    new()
-                    {
-                        Name = "Metal ball",
-                        Properties = new Dictionary<string, object>
-                        {
-                            { "Mass", 1.0f },
-                            { "Position", new Vector3(-1, 50, 0) },
-                            { "Displacement", new Vector3(0, 0, 0) },
-                            { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.2f },                            
-                            { "GravityForce", new Vector3(0, 0, 0) },
-                            { "DragForce", new Vector3(0, 0, 0) },                           
-                            { "MagnetismForce", new Vector3(0, 0, 0) },
-                            { "Color", Color.Silver }
-                        },
-                        Description = "Metallic object (has MagnetismForce property) - affected by both gravity and magnetic field (upward)"
-                    },
-                    new()
-                    {
-                        Name = "Plastic ball",
-                        Properties = new Dictionary<string, object>
-                        {
-                            { "Mass", 1.0f },
-                            { "Position", new Vector3(1, 50, 0) },
-                            { "Displacement", new Vector3(0, 0, 0) },
-                            { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.2f },
-                            { "GravityForce", new Vector3(0, 0, 0) },
-                            { "DragForce", new Vector3(0, 0, 0) },
-                            { "Color", Color.Orange }
-                        },
-                        Description = "Non-metallic object (no MagnetismForce property) - affected by gravity and drag only"
-                    }
-                }
-            },
-            // Execution logic
-            async (controller, stateManager) =>
-            {
-                Console.WriteLine("╔═════════════════════════════════════════════════════════════╗");
-                Console.WriteLine("║  TEST CASE 4: Magnetism - Metallic vs Non-Metallic          ║");
-                Console.WriteLine("║  Metal ball: gravity + magnetic force (upward)              ║");
-                Console.WriteLine("║  Plastic ball: gravity only                                 ║");
-                Console.WriteLine("╚═════════════════════════════════════════════════════════════╝\n");
-
-                try
-                {
-                    // Load configuration to get simulation step count
-                    var config = ServiceSetupLoader.LoadConfiguration("DefaultSetup.json");
-                    int simulationSteps = config.SimulationSteps;
-
-                    // Run simulation for configured number of steps to see magnetic effect
-                    for (int step = 1; step <= simulationSteps; step++)
-                    {
-                        await controller.OneStepAsync();
-                    }
-
-                    // Stop simulation
-                    await controller.StopAsync();
-
-                    Console.WriteLine("✓ Test case completed successfully!\n");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"✗ Test case failed: {ex.Message}");
-                    Console.WriteLine($"Stack Trace: {ex.StackTrace}");
-                }
-            }
-        ),
-        new(
-            "Wind effect: large radius vs small radius",
-            // Setup data
-            new TestSetup
-            {
-                ConfigurationFile = "DefaultSetup.json",
-                Description = "Two entities with same mass: one with large radius (affected by wind), one with small radius (minimal wind effect)",
-                Entities = new List<EntityDefinition>
-                {
-                    new()
-                    {
-                        Name = "Large ball (wind-affected)",
-                        Properties = new Dictionary<string, object>
-                        {
-                            { "Mass", 1.0f },
-                            { "Position", new Vector3(-1.5f, 50, 0) },
-                            { "Displacement", new Vector3(0, 0, 0) },
-                            { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 1.0f },
-                            { "GravityForce", new Vector3(0, 0, 0) },
-                            { "DragForce", new Vector3(0, 0, 0) },
-                            { "WindForce", new Vector3(0, 0, 0) },
-                            { "Color", Color.DeepSkyBlue }
-                        },
-                        Description = "Mass=1.0kg, Radius=1.0m - large cross-section, significantly affected by wind"
-                    },
-                    new()
-                    {
-                        Name = "Small ball (minimal wind)",
-                        Properties = new Dictionary<string, object>
-                        {
-                            { "Mass", 1.0f },
-                            { "Position", new Vector3(1.5f, 50, 0) },
-                            { "Displacement", new Vector3(0, 0, 0) },
-                            { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.5f },
-                            { "GravityForce", new Vector3(0, 0, 0) },
-                            { "DragForce", new Vector3(0, 0, 0) },
-                            { "WindForce", new Vector3(0, 0, 0) },
-                            { "Color", Color.Turquoise }
-                        },
-                        Description = "Mass=1.0kg, Radius=0.5m - small cross-section, minimal wind effect"
-                    }
-                }
-            },
-            // Execution logic
-            async (controller, stateManager) =>
-            {
-                Console.WriteLine("╔═════════════════════════════════════════════════════════════╗");
-                Console.WriteLine("║  TEST CASE 5: Wind Effect - Large vs Small Radius           ║");
-                Console.WriteLine("║  Large ball: gravity + wind (large cross-section)           ║");
-                Console.WriteLine("║  Small ball: gravity + minimal wind (small cross-section)   ║");
-                Console.WriteLine("╚═════════════════════════════════════════════════════════════╝\n");
-
-                try
-                {
-                    // Load configuration to get simulation step count
-                    var config = ServiceSetupLoader.LoadConfiguration("DefaultSetup.json");
-                    int simulationSteps = config.SimulationSteps;
-
-                    // Run simulation for configured number of steps to observe wind effect differences
-                    for (int step = 1; step <= simulationSteps; step++)
-                    {
-                        await controller.OneStepAsync();
-                    }
-
-                    // Stop simulation
-                    await controller.StopAsync();
-
-                    Console.WriteLine("✓ Test case completed successfully!\n");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"✗ Test case failed: {ex.Message}");
-                    Console.WriteLine($"Stack Trace: {ex.StackTrace}");
-                }
-            }
-        ),
-        new(
-            "Combined forces: gravity only, gravity+magnetism, gravity+wind, gravity+magnetism+wind",
-            // Setup data
-            new TestSetup
-            {
-                ConfigurationFile = "DefaultSetup.json",
-                Description = "Four entities with identical size/mass but different force combinations: gravity-only, gravity+magnetism, gravity+wind, gravity+magnetism+wind",
-                Entities = new List<EntityDefinition>
-                {
-                    new()
-                    {
-                        Name = "Gravity only",
-                        Properties = new Dictionary<string, object>
-                        {
-                            { "Mass", 1.0f },
-                            { "Position", new Vector3(-3, 50, 0) },
-                            { "Displacement", new Vector3(0, 0, 0) },
-                            { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.3f },
-                            { "GravityForce", new Vector3(0, 0, 0) },
-                            { "DragForce", new Vector3(0, 0, 0) },
-                            { "Color", Color.Red }
-                        },
-                        Description = "Non-metallic, no wind (missing MagnetismForce and WindForce properties) - gravity only"
-                    },
-                    new()
-                    {
-                        Name = "Gravity + Magnetism",
-                        Properties = new Dictionary<string, object>
-                        {
-                            { "Mass", 1.0f },
-                            { "Position", new Vector3(-1, 50, 0) },
-                            { "Displacement", new Vector3(0, 0, 0) },
-                            { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.3f },
-                            { "GravityForce", new Vector3(0, 0, 0) },
-                            { "DragForce", new Vector3(0, 0, 0) },
-                            { "MagnetismForce", new Vector3(0, 0, 0) },
-                            { "Color", Color.Gold }
-                        },
-                        Description = "Metallic (has MagnetismForce property), no wind effect - gravity and magnetic field (upward force counteracts gravity)"
-                    },
-                    new()
-                    {
-                        Name = "Gravity + Wind",
-                        Properties = new Dictionary<string, object>
-                        {
-                            { "Mass", 1.0f },
-                            { "Position", new Vector3(1, 50, 0) },
-                            { "Displacement", new Vector3(0, 0, 0) },
-                            { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.3f },
-                            { "GravityForce", new Vector3(0, 0, 0) },
-                            { "DragForce", new Vector3(0, 0, 0) },
-                            { "WindForce", new Vector3(0, 0, 0) },
-                            { "Color", Color.Cyan }
-                        },
-                        Description = "Non-metallic (no MagnetismForce property), affected by wind - gravity and wind force (horizontal push)"
-                    },
-                    new()
-                    {
-                        Name = "Gravity + Wind + Magnetism",
-                        Properties = new Dictionary<string, object>
-                        {
-                            { "Mass", 1.0f },
-                            { "Position", new Vector3(3, 50, 0) },
-                            { "Displacement", new Vector3(0, 0, 0) },
-                            { "CurrentSpeed", new Vector3(0, 0, 0) },
-                            { "Radius", 0.3f },
-                            { "GravityForce", new Vector3(0, 0, 0) },
-                            { "DragForce", new Vector3(0, 0, 0) },
-                            { "MagnetismForce", new Vector3(0, 0, 0) },
-                            { "WindForce", new Vector3(0, 0, 0) },
-                            { "Color", Color.Lime }
-                        },
-                        Description = "Metallic (has MagnetismForce and WindForce properties) - gravity+magnetism+wind (all forces active)"
-                    }
-                }
-            },
-            // Execution logic
-            async (controller, stateManager) =>
-            {
-                Console.WriteLine("╔═════════════════════════════════════════════════════════════╗");
-                Console.WriteLine("║  TEST CASE 6: Combined Forces - Force Composition           ║");
-                Console.WriteLine("║  Entity 1: gravity only (downward)                          ║");
-                Console.WriteLine("║  Entity 2: gravity + magnetism (upward magnetic force)      ║");
-                Console.WriteLine("║  Entity 3: gravity + wind (horizontal wind push)            ║");
-                Console.WriteLine("║  Entity 4: gravity + magnetism + wind (all forces)          ║");
-                Console.WriteLine("╚═════════════════════════════════════════════════════════════╝\n");
-
-                try
-                {
-                    // Load configuration to get simulation step count
-                    var config = ServiceSetupLoader.LoadConfiguration("DefaultSetup.json");
-                    int simulationSteps = config.SimulationSteps;
-
-                    // Run simulation for configured number of steps to observe different force interactions
-                    for (int step = 1; step <= simulationSteps; step++)
-                    {
-                        await controller.OneStepAsync();
-                    }
-
-                    // Stop simulation
-                    await controller.StopAsync();
-
-                    Console.WriteLine("✓ Test case completed successfully!\n");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"✗ Test case failed: {ex.Message}");
-                    Console.WriteLine($"Stack Trace: {ex.StackTrace}");
-                }
-            }
-        )
-    };
+    public static IReadOnlyList<TestCase> All => _all.Value;
 
     public static void ListAll()
     {
@@ -513,21 +62,223 @@ public static class TestCases
         }
     }
 
-    public static async Task<StateManager> RunByIndexAsync(int index, Simulation.StateManager.VisualizationMapper? visualizationMapper = null)
+    public static async Task<StateManager> RunByIndexAsync(int index, Simulation.StateManager.VisualizationMapper? visualizationMapper = null, string? configurationFileOverride = null)
     {
         if (index < 0 || index >= All.Count)
             throw new ArgumentOutOfRangeException(nameof(index), "Invalid test case index.");
 
         var testCase = All[index];
-        
+
         // Initialize components from test setup data
         // Pass visualization mapper so entities are sent to external tools during creation
-        var interactionController = await SimulationInitializer.InitializeFromTestSetupAsync(testCase.Setup, visualizationMapper);
+        var interactionController = await SimulationInitializer.InitializeFromTestSetupAsync(testCase.Setup, visualizationMapper, configurationFileOverride);
         var stateManager = interactionController.GetEntityManager().GetStateManager();
-        
+
         // Run the test execution logic
         await testCase.ExecutionLogic(interactionController, stateManager);
 
         return stateManager;
+    }
+
+    private static IReadOnlyList<TestCase> LoadAll()
+    {
+        var configFile = LoadConfigFile();
+        return configFile.TestCases.Select(BuildTestCase).ToList();
+    }
+
+    private static TestCase BuildTestCase(TestCaseConfig config)
+    {
+        var setup = new TestSetup
+        {
+            ConfigurationFile = config.ConfigurationFile,
+            Description = config.Description,
+            Entities = config.Entities.Select(BuildEntityDefinition).ToList()
+        };
+
+        return new TestCase(config.Name, setup, CreateExecutionLogic(config));
+    }
+
+    private static EntityDefinition BuildEntityDefinition(EntityConfig config)
+    {
+        return new EntityDefinition
+        {
+            Name = config.Name,
+            Description = config.Description,
+            Properties = BuildProperties(config.Properties)
+        };
+    }
+
+    private static Dictionary<string, object> BuildProperties(Dictionary<string, JsonElement> properties)
+    {
+        var result = new Dictionary<string, object>();
+        foreach (var (propertyName, value) in properties)
+        {
+            var parsed = ParsePropertyValue(propertyName, value);
+            if (parsed != null)
+            {
+                result[propertyName] = parsed;
+            }
+        }
+
+        return result;
+    }
+
+    private static object? ParsePropertyValue(string propertyName, JsonElement value)
+    {
+        switch (value.ValueKind)
+        {
+            case JsonValueKind.Number:
+                return (float)value.GetDouble();
+            case JsonValueKind.String:
+                return ParseStringValue(propertyName, value.GetString());
+            case JsonValueKind.True:
+            case JsonValueKind.False:
+                return value.GetBoolean();
+            case JsonValueKind.Array:
+                return ParseVector3Array(value);
+            case JsonValueKind.Object:
+                return ParseVector3Object(value);
+            case JsonValueKind.Null:
+                return null;
+            default:
+                throw new JsonException($"Unsupported property value kind for {propertyName}: {value.ValueKind}");
+        }
+    }
+
+    private static object ParseStringValue(string propertyName, string? rawValue)
+    {
+        if (string.IsNullOrWhiteSpace(rawValue))
+            throw new JsonException($"Property {propertyName} cannot be empty");
+
+        if (propertyName.Equals("Color", StringComparison.OrdinalIgnoreCase))
+            return ParseColor(rawValue);
+
+        return rawValue;
+    }
+
+    private static double[] ParseVector3Array(JsonElement value)
+    {
+        var elements = value.EnumerateArray().ToList();
+        if (elements.Count != 3)
+            throw new JsonException("Vector3 arrays must have exactly 3 elements");
+
+        return new double[]
+        {
+            elements[0].GetDouble(),
+            elements[1].GetDouble(),
+            elements[2].GetDouble()
+        };
+    }
+
+    private static double[] ParseVector3Object(JsonElement value)
+    {
+        double x = GetRequiredNumber(value, "x");
+        double y = GetRequiredNumber(value, "y");
+        double z = GetRequiredNumber(value, "z");
+        return new double[] { x, y, z };
+    }
+
+    private static double GetRequiredNumber(JsonElement value, string property)
+    {
+        if (!value.TryGetProperty(property, out var element) && !value.TryGetProperty(property.ToUpperInvariant(), out element))
+            throw new JsonException($"Vector3 object missing '{property}' field");
+
+        return element.GetDouble();
+    }
+
+    private static Color ParseColor(string rawValue)
+    {
+        if (rawValue.StartsWith("#", StringComparison.Ordinal))
+            return ColorTranslator.FromHtml(rawValue);
+
+        var color = Color.FromName(rawValue);
+        if (!color.IsKnownColor && !color.IsNamedColor && !color.IsSystemColor)
+            throw new JsonException($"Unknown color name: {rawValue}");
+
+        return color;
+    }
+
+    private static Func<IInteractionController, StateManager, Task> CreateExecutionLogic(TestCaseConfig config)
+    {
+        return async (controller, stateManager) =>
+        {
+            PrintBanner(config.HeaderLines);
+
+            try
+            {
+                var setupConfig = ServiceSetupLoader.LoadConfiguration(config.ConfigurationFile);
+                int simulationSteps = setupConfig.SimulationSteps;
+
+                for (int step = 1; step <= simulationSteps; step++)
+                {
+                    await controller.OneStepAsync();
+                }
+
+                await controller.StopAsync();
+
+                Console.WriteLine("✓ Test case completed successfully!\n");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"✗ Test case failed: {ex.Message}");
+                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+            }
+        };
+    }
+
+    private static void PrintBanner(IReadOnlyList<string> lines)
+    {
+        if (lines.Count == 0)
+            return;
+
+        int width = lines.Max(line => line.Length);
+        string top = $"╔{new string('═', width + 2)}╗";
+        string bottom = $"╚{new string('═', width + 2)}╝";
+
+        Console.WriteLine(top);
+        foreach (var line in lines)
+        {
+            Console.WriteLine($"║ {line.PadRight(width)} ║");
+        }
+        Console.WriteLine(bottom + "\n");
+    }
+
+    private static TestCaseConfigFile LoadConfigFile()
+    {
+        string configPath = GetTestCasesPath();
+
+        if (!File.Exists(configPath))
+            throw new FileNotFoundException($"Test cases configuration file not found: {configPath}");
+
+        string jsonContent = File.ReadAllText(configPath);
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            AllowTrailingCommas = true,
+            ReadCommentHandling = JsonCommentHandling.Skip
+        };
+
+        var configFile = JsonSerializer.Deserialize<TestCaseConfigFile>(jsonContent, options);
+        if (configFile == null)
+            throw new JsonException("Test cases deserialization resulted in null");
+
+        return configFile;
+    }
+
+    private static string GetTestCasesPath()
+    {
+        var assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+        var assemblyFolder = Path.GetDirectoryName(assemblyPath);
+
+        if (string.IsNullOrEmpty(assemblyFolder))
+            throw new InvalidOperationException("Could not determine assembly folder");
+
+        string configPath = Path.Combine(
+            assemblyFolder,
+            "..", "..", "..",
+            "TestCases.json"
+        );
+
+        return Path.GetFullPath(configPath);
     }
 }

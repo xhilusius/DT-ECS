@@ -15,6 +15,7 @@ using DataStorage.Interfaces;
 /// After applying displacement to position, resets Displacement to zero for the next timestep.
 /// Pure computation: receives input property arrays, calculates and returns updated positions.
 /// SimEngine handles fetching inputs from repository and writing outputs back.
+/// Uses double precision for Position and Displacement to handle Earth-scale simulations.
 /// </summary>
 public class PositionModel : ISimulationModel
 {
@@ -54,22 +55,25 @@ public class PositionModel : ISimulationModel
                 int positionIndex = inputBundle.EntityToPropertyIndices[entityId]["Position"];
                 int displacementIndex = inputBundle.EntityToPropertyIndices[entityId]["Displacement"];
 
-                // Extract current position
-                var currentPosition = positionIndex < positionValues.Count
-                    ? positionValues[positionIndex] as Vector3? ?? Vector3.Zero
-                    : Vector3.Zero;
+                // Extract current position - now double[]
+                var currentPosition = positionIndex < positionValues.Count && positionValues[positionIndex] is double[] pos && pos.Length == 3
+                    ? pos
+                    : new double[] { 0, 0, 0 };
 
-                // Extract displacement (provided by GravityModel or other displacement sources)
-                var displacement = displacementIndex < displacementValues.Count
-                    ? displacementValues[displacementIndex] as Vector3? ?? Vector3.Zero
-                    : Vector3.Zero;
+                // Extract displacement (provided by GravityModel or other displacement sources) - now double[]
+                var displacement = displacementIndex < displacementValues.Count && displacementValues[displacementIndex] is double[] disp && disp.Length == 3
+                    ? disp
+                    : new double[] { 0, 0, 0 };
 
-                // Calculate new position: newPosition = currentPosition + displacement
-                Vector3 newPosition = currentPosition + displacement;
+                // Calculate new position: newPosition = currentPosition + displacement (component-wise)
+                double[] newPosition = new double[3];
+                newPosition[0] = currentPosition[0] + displacement[0];
+                newPosition[1] = currentPosition[1] + displacement[1];
+                newPosition[2] = currentPosition[2] + displacement[2];
 
                 newPositions.Add(newPosition);
                 // Reset displacement to zero for next timestep
-                resetDisplacements.Add(Vector3.Zero);
+                resetDisplacements.Add(new double[] { 0, 0, 0 });
             }
 
             // Return output as dictionary

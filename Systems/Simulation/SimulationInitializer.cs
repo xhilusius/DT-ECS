@@ -21,17 +21,21 @@ public static class SimulationInitializer
     /// </summary>
     /// <param name="testSetup">The test setup definition containing configuration and entity data</param>
     /// <param name="visualizationMapper">Optional visualization mapper for sending updates to external tools</param>
+    /// <param name="configurationFileOverride">Optional configuration file to use instead of the one in testSetup</param>
     /// <returns>InteractionController ready to run the simulation</returns>
     public static async Task<global::Simulation.InteractionController.InteractionController> InitializeFromTestSetupAsync(
         TestSetup testSetup,
-        Simulation.StateManager.VisualizationMapper? visualizationMapper = null)
+        Simulation.StateManager.VisualizationMapper? visualizationMapper = null,
+        string? configurationFileOverride = null)
     {
+        var effectiveConfigFile = configurationFileOverride ?? testSetup.ConfigurationFile;
+        
         Console.WriteLine("╔═════════════════════════════════════════════════════════════╗");
         Console.WriteLine("║              INITIALIZING SIMULATION COMPONENTS             ║");
         Console.WriteLine("╚═════════════════════════════════════════════════════════════╝\n");
 
         Console.WriteLine($"📄 Test: {testSetup.Description}");
-        Console.WriteLine($"⚙️  Configuration: {testSetup.ConfigurationFile}");
+        Console.WriteLine($"⚙️  Configuration: {effectiveConfigFile}");
         Console.WriteLine($"🎯 Entities to create: {testSetup.Entities.Count}\n");
 
         // ===== STEP 1: Initialize the dependency hierarchy =====
@@ -59,7 +63,7 @@ public static class SimulationInitializer
 
         Console.WriteLine("[5/6] Initializing Service Manager...");
         var serviceManager = new global::Simulation.ServiceManager.ServiceManager(simEngine);
-        await serviceManager.InitializeAsync(testSetup.ConfigurationFile);
+        await serviceManager.InitializeAsync(effectiveConfigFile);
 
         Console.WriteLine("[6/6] Initializing Interaction Controller...");
         var interactionController = new global::Simulation.InteractionController.InteractionController(serviceManager, entityManager);

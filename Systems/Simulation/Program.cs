@@ -2,7 +2,7 @@ Console.WriteLine("╔═══════════════════�
 Console.WriteLine("║            DIGITAL TWIN SIMULATION - TEST RUN               ║");
 Console.WriteLine("╚═════════════════════════════════════════════════════════════╝\n");
 
-// Display available test cases
+// Step 1: Display available test cases
 TestCases.ListAll();
 Console.Write("\nSelect test case number (0 - " + (TestCases.All.Count - 1) + "): ");
 var selectionInput = Console.ReadLine();
@@ -17,12 +17,52 @@ if (int.TryParse(selectionInput, out var testIndex))
     {
         var selectedTest = TestCases.All[testIndex];
 
+        // Step 2: Discover and display available configuration files
+        var setupsPath = Path.Combine(AppContext.BaseDirectory, "src", "components", "ServiceManager", "ServiceSetups");
+        var configFiles = Directory.GetFiles(setupsPath, "*Setup.json")
+            .Select(Path.GetFileName)
+            .Where(f => f != null)
+            .Cast<string>()
+            .OrderBy(f => f)
+            .ToList();
+
+        Console.WriteLine("\n╔═════════════════════════════════════════════════════════════╗");
+        Console.WriteLine("║              SELECT CONFIGURATION FILE                      ║");
+        Console.WriteLine("╚═════════════════════════════════════════════════════════════╝\n");
+        
+        for (int i = 0; i < configFiles.Count; i++)
+        {
+            var isDefault = configFiles[i] == selectedTest.Setup.ConfigurationFile;
+            var marker = isDefault ? " (default from test case)" : "";
+            Console.WriteLine($"  [{i}] {configFiles[i]}{marker}");
+        }
+        
+        Console.Write($"\nSelect configuration file (0-{configFiles.Count - 1}, or press Enter for default): ");
+        var configInput = Console.ReadLine();
+        
+        string selectedConfigFile = selectedTest.Setup.ConfigurationFile;
+        
+        if (!string.IsNullOrWhiteSpace(configInput) && int.TryParse(configInput, out var configIndex))
+        {
+            if (configIndex >= 0 && configIndex < configFiles.Count)
+            {
+                selectedConfigFile = configFiles[configIndex];
+            }
+            else
+            {
+                Console.WriteLine($"Invalid index. Using default: {selectedConfigFile}");
+            }
+        }
+        
+        // Determine if we're overriding the default configuration
+        string? configOverride = (selectedConfigFile != selectedTest.Setup.ConfigurationFile) ? selectedConfigFile : null;
+
         // Show test details before running
         Console.WriteLine("\n╔═════════════════════════════════════════════════════════════╗");
-        Console.WriteLine("║              READY TO START SIMULATION                     ║");
+        Console.WriteLine("║              READY TO START SIMULATION                      ║");
         Console.WriteLine("╚═════════════════════════════════════════════════════════════╝\n");
         Console.WriteLine($"📋 Test: {selectedTest.Name}");
-        Console.WriteLine($"📝 Setup: {selectedTest.Setup.ConfigurationFile}");
+        Console.WriteLine($"📝 Configuration: {selectedConfigFile}");
         Console.WriteLine($"🎯 Entities: {selectedTest.Setup.Entities.Count}");
         Console.WriteLine($"ℹ️  Description: {selectedTest.Setup.Description}\n");
         
@@ -60,7 +100,7 @@ if (int.TryParse(selectionInput, out var testIndex))
         {
             // Components are initialized with test data when test runs
             // Pass the visualization mapper so entities are sent to Godot during creation
-            var stateManager = await TestCases.RunByIndexAsync(testIndex, visualizationMapper);
+            var stateManager = await TestCases.RunByIndexAsync(testIndex, visualizationMapper, configOverride);
 
             if (useVisualization)
             {

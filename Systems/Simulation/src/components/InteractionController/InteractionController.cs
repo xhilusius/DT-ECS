@@ -20,7 +20,7 @@ using Simulation.StateManager;
 ///    - Continue: Resume from paused state
 ///    - OneStep: Execute a single step and auto-pause
 /// 
-/// 2) ENTITY MANAGEMENT:
+/// 2) ENTITY MANAGEMENT (through EntityManager) as Interface:
 ///    - Create new entities with specified properties
 ///    - Add properties to existing entities
 ///    - Remove properties from entities

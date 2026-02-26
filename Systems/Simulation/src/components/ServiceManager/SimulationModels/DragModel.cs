@@ -25,11 +25,12 @@ using Simulation.StateManager;
 /// The drag force is output independently and summed by PhysicsIntegrator
 /// with forces from other models (e.g., GravityModel, MagnetismModel).
 /// This enables true parallel execution of force models on multi-core systems.
+/// Uses double precision for CurrentSpeed and DragForce to handle Earth-scale simulations.
 /// </summary>
 public class DragModel : ISimulationModel
 {
-    private const float AirDensity = 1.225f; // kg/m³ at sea level
-    private const float DragCoefficientSphere = 0.47f; // Typical drag coefficient for a sphere
+    private const double AirDensity = 1.225; // kg/m³ at sea level
+    private const double DragCoefficientSphere = 0.47; // Typical drag coefficient for a sphere
 
     public DragModel()
     {
@@ -70,10 +71,10 @@ public class DragModel : ISimulationModel
                 int speedIndex = inputBundle.EntityToPropertyIndices[entityId]["CurrentSpeed"];
                 int radiusIndex = inputBundle.EntityToPropertyIndices[entityId]["Radius"];
 
-                // Extract current speed
-                var currentSpeed = speedIndex < speedValues.Count
-                    ? speedValues[speedIndex] as Vector3? ?? Vector3.Zero
-                    : Vector3.Zero;
+                // Extract current speed - now double[]
+                var currentSpeed = speedIndex < speedValues.Count && speedValues[speedIndex] is double[] cs && cs.Length == 3
+                    ? cs
+                    : new double[] { 0, 0, 0 };
 
                 // Extract radius for drag calculation
                 var radius = radiusIndex < radiusValues.Count
@@ -81,7 +82,7 @@ public class DragModel : ISimulationModel
                     : 0.01f;
 
                 // Calculate drag force
-                Vector3 dragForce = CalculateDragForce(radius, currentSpeed);
+                double[] dragForce = CalculateDragForce(radius, currentSpeed);
                 outputForces.Add(dragForce);
             }
 
@@ -96,23 +97,24 @@ public class DragModel : ISimulationModel
     /// Calculates drag force based on velocity and object radius.
     /// Drag acts opposite to the velocity direction.
     /// </summary>
-    private Vector3 CalculateDragForce(float radius, Vector3 currentSpeed)
+    private double[] CalculateDragForce(float radius, double[] currentSpeed)
     {
         if (radius <= 0)
-            return Vector3.Zero;
+            return new double[] { 0, 0, 0 };
 
-        float speedMagnitude = currentSpeed.Length();
-        Vector3 dragForce = Vector3.Zero;
+        double speedMagnitude = Math.Sqrt(currentSpeed[0] * currentSpeed[0] + currentSpeed[1] * currentSpeed[1] + currentSpeed[2] * currentSpeed[2]);
+        double[] dragForce = new double[] { 0, 0, 0 };
 
         if (speedMagnitude > 0)
         {
             // Drag force: F_drag = 0.5 * ρ * v² * Cd * A
-            float crossSectionArea = MathF.PI * radius * radius;
-            float dragForceMagnitude = 0.5f * AirDensity * speedMagnitude * speedMagnitude * DragCoefficientSphere * crossSectionArea;
+            double crossSectionArea = Math.PI * radius * radius;
+            double dragForceMagnitude = 0.5 * AirDensity * speedMagnitude * speedMagnitude * DragCoefficientSphere * crossSectionArea;
 
             // Drag acts opposite to velocity direction
-            Vector3 dragDirection = -(currentSpeed / speedMagnitude);
-            dragForce = dragDirection * dragForceMagnitude;
+            dragForce[0] = -(currentSpeed[0] / speedMagnitude) * dragForceMagnitude;
+            dragForce[1] = -(currentSpeed[1] / speedMagnitude) * dragForceMagnitude;
+            dragForce[2] = -(currentSpeed[2] / speedMagnitude) * dragForceMagnitude;
         }
 
         return dragForce;

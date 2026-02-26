@@ -3,6 +3,15 @@ namespace Simulation.ServiceManager;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+// NOTE: This file defines the configuration classes and loader for simulation setups.
+// It functions as the central place to define how simulation models are configured, their input/output properties,
+// and the execution order of models in a simulation run.
+// It includes:
+// - SimulationModelConfig: Defines input/output properties for a single simulation model.
+// - TimeStepConfig: Defines the time step value and unit for the simulation.
+// - PropertyVisibility: Defines which properties to show in state reports (always, once, intermediate).
+// - PropertiesConfiguration: Contains property units and visibility settings, loaded from a JSON file.
+
 /// <summary>
 /// Represents a simulation model configuration entry.
 /// Defines input/output properties for a single simulation model.

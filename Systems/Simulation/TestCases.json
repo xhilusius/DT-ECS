@@ -1,0 +1,664 @@
+{
+  "testCases": [
+    {
+      "name": "Single entity: gravity and positioning",
+      "configurationFile": "DefaultSetup.json",
+      "description": "Single entity falling under gravity with terminal velocity",
+      "headerLines": [
+        "TEST CASE 1: Single Entity - Gravity & Positioning"
+      ],
+      "entities": [
+        {
+          "name": "Ball",
+          "description": "Non-metallic, no wind (missing MagnetismForce and WindForce properties) - gravity only",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [0, 50, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.2,
+            "GravityForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Red"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Three entities: mass and radius variations",
+      "configurationFile": "DefaultSetup.json",
+      "description": "Three entities with different mass/radius combinations showing terminal velocity differences",
+      "headerLines": [
+        "TEST CASE 2: Three Entities - Mass & Radius Variations",
+        "E1 & E2: same mass, different radius",
+        "E2 & E3: same radius, different mass"
+      ],
+      "entities": [
+        {
+          "name": "Entity 1 (small radius)",
+          "description": "Mass=0.5kg, Radius=0.4m (low mass, moderate drag)",
+          "properties": {
+            "Mass": 0.5,
+            "Position": [-2, 50, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.4,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Blue"
+          }
+        },
+        {
+          "name": "Entity 2 (large radius)",
+          "description": "Mass=0.5kg, Radius=0.6m (same mass as E1, more drag = SLOWEST)",
+          "properties": {
+            "Mass": 0.5,
+            "Position": [0, 50, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.6,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Lime"
+          }
+        },
+        {
+          "name": "Entity 3 (heavy)",
+          "description": "Mass=2.0kg, Radius=0.6m (heavier, same drag as E2 = FASTEST)",
+          "properties": {
+            "Mass": 2.0,
+            "Position": [2, 50, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.6,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Yellow"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Two entities: one complete, one incomplete",
+      "configurationFile": "DefaultSetup.json",
+      "description": "Two entities: one with all properties (simulates), one missing Mass (no behavior)",
+      "headerLines": [
+        "TEST CASE 3: Two Entities - Complete vs Incomplete",
+        "E1: has all required properties (will simulate)",
+        "E2: missing Mass (will NOT simulate)"
+      ],
+      "entities": [
+        {
+          "name": "Complete entity",
+          "description": "Has all properties: Mass, Position, CurrentSpeed, Radius, Displacement",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [-1, 50, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.2,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Cyan"
+          }
+        },
+        {
+          "name": "Incomplete entity",
+          "description": "Missing Mass property - will have no behavior",
+          "properties": {
+            "Position": [1, 50, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.2,
+            "Visualize": true,
+            "Color": "Magenta"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Magnetism: metallic vs non-metallic entities",
+      "configurationFile": "DefaultSetup.json",
+      "description": "Two entities: one metallic (affected by magnetic field), one non-metallic (gravity only)",
+      "headerLines": [
+        "TEST CASE 4: Magnetism - Metallic vs Non-Metallic",
+        "Metal ball: gravity + magnetic force (upward)",
+        "Plastic ball: gravity only"
+      ],
+      "entities": [
+        {
+          "name": "Metal ball",
+          "description": "Metallic object (has MagnetismForce property) - affected by both gravity and magnetic field (upward)",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [-1, 50, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.2,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "MagnetismForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Silver"
+          }
+        },
+        {
+          "name": "Plastic ball",
+          "description": "Non-metallic object (no MagnetismForce property) - affected by gravity and drag only",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [1, 50, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.2,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Orange"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wind effect: large radius vs small radius",
+      "configurationFile": "DefaultSetup.json",
+      "description": "Two entities with same mass: one with large radius (affected by wind), one with small radius (minimal wind effect)",
+      "headerLines": [
+        "TEST CASE 5: Wind Effect - Large vs Small Radius",
+        "Large ball: gravity + wind (large cross-section)",
+        "Small ball: gravity + minimal wind (small cross-section)"
+      ],
+      "entities": [
+        {
+          "name": "Large ball (wind-affected)",
+          "description": "Mass=1.0kg, Radius=1.0m - large cross-section, significantly affected by wind",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [-1.5, 50, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 1.0,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "WindForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "DeepSkyBlue"
+          }
+        },
+        {
+          "name": "Small ball (minimal wind)",
+          "description": "Mass=1.0kg, Radius=0.5m - small cross-section, minimal wind effect",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [1.5, 50, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.5,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "WindForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Turquoise"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Combined forces: gravity only, gravity+magnetism, gravity+wind, gravity+magnetism+wind",
+      "configurationFile": "DefaultSetup.json",
+      "description": "Four entities with identical size/mass but different force combinations: gravity-only, gravity+magnetism, gravity+wind, gravity+magnetism+wind",
+      "headerLines": [
+        "TEST CASE 6: Combined Forces - Force Composition",
+        "Entity 1: gravity only (downward)",
+        "Entity 2: gravity + magnetism (upward magnetic force)",
+        "Entity 3: gravity + wind (horizontal wind push)",
+        "Entity 4: gravity + magnetism + wind (all forces)"
+      ],
+      "entities": [
+        {
+          "name": "Gravity only",
+          "description": "Non-metallic, no wind (missing MagnetismForce and WindForce properties) - gravity only",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [-3, 50, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.3,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Red"
+          }
+        },
+        {
+          "name": "Gravity + Magnetism",
+          "description": "Metallic (has MagnetismForce property), no wind effect - gravity and magnetic field (upward force counteracts gravity)",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [-1, 50, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.3,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "MagnetismForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Gold"
+          }
+        },
+        {
+          "name": "Gravity + Wind",
+          "description": "Non-metallic (no MagnetismForce property), affected by wind - gravity and wind force (horizontal push)",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [1, 50, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.3,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "WindForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Cyan"
+          }
+        },
+        {
+          "name": "Gravity + Wind + Magnetism",
+          "description": "Metallic (has MagnetismForce and WindForce properties) - gravity+magnetism+wind (all forces active)",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [3, 50, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.3,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "MagnetismForce": [0, 0, 0],
+            "WindForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Lime"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Single entity + Earth: N-body gravity",
+      "configurationFile": "NBodySetup.json",
+      "description": "Single entity falling under N-body gravitational attraction from Earth",
+      "headerLines": [
+        "TEST CASE 7: Single Entity + Earth - N-Body Gravity"
+      ],
+      "entities": [
+        {
+          "name": "Earth",
+          "description": "Planet Earth - massive body at origin providing gravitational attraction",
+          "properties": {
+            "Mass": 5.97e24,
+            "Position": [0, 0, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 6.371e6,
+            "GravityForce": [0, 0, 0],
+            "Visualize": false,
+            "Color": "Blue"
+          }
+        },
+        {
+          "name": "Ball",
+          "description": "Non-metallic, no wind (missing MagnetismForce and WindForce properties) - N-body gravity only",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [0, 6.371e6, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.2,
+            "GravityForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Red"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Three entities + Earth: N-body mass and radius variations",
+      "configurationFile": "NBodySetup.json",
+      "description": "Three entities with different mass/radius combinations under N-body gravitational attraction from Earth",
+      "headerLines": [
+        "TEST CASE 8: Three Entities + Earth - N-Body Mass & Radius Variations",
+        "E1 & E2: same mass, different radius",
+        "E2 & E3: same radius, different mass"
+      ],
+      "entities": [
+        {
+          "name": "Earth",
+          "description": "Planet Earth - massive body at origin providing gravitational attraction",
+          "properties": {
+            "Mass": 5.97e24,
+            "Position": [0, 0, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 6.371e6,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "Visualize": false,
+            "Color": "Blue"
+          }
+        },
+        {
+          "name": "Entity 1 (small radius)",
+          "description": "Mass=0.5kg, Radius=0.4m (low mass, moderate drag)",
+          "properties": {
+            "Mass": 0.5,
+            "Position": [-2, 6.371e6, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.4,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Lime"
+          }
+        },
+        {
+          "name": "Entity 2 (large radius)",
+          "description": "Mass=0.5kg, Radius=0.6m (same mass as E1, more drag = SLOWEST)",
+          "properties": {
+            "Mass": 0.5,
+            "Position": [0, 6.371e6, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.6,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Yellow"
+          }
+        },
+        {
+          "name": "Entity 3 (heavy)",
+          "description": "Mass=2.0kg, Radius=0.6m (heavier, same drag as E2 = FASTEST)",
+          "properties": {
+            "Mass": 2.0,
+            "Position": [2, 6.371e6, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.6,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Orange"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Two entities + Earth: one complete, one incomplete",
+      "configurationFile": "NBodySetup.json",
+      "description": "Two entities under N-body gravity: one with all properties (simulates), one missing Mass (no behavior)",
+      "headerLines": [
+        "TEST CASE 9: Two Entities + Earth - Complete vs Incomplete",
+        "E1: has all required properties (will simulate)",
+        "E2: missing Mass (will NOT simulate)"
+      ],
+      "entities": [
+        {
+          "name": "Earth",
+          "description": "Planet Earth - massive body at origin providing gravitational attraction",
+          "properties": {
+            "Mass": 5.97e24,
+            "Position": [0, 0, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 6.371e6,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "Visualize": false,
+            "Color": "Blue"
+          }
+        },
+        {
+          "name": "Complete entity",
+          "description": "Has all properties: Mass, Position, CurrentSpeed, Radius, Displacement",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [-1, 6.371e6, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.2,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Cyan"
+          }
+        },
+        {
+          "name": "Incomplete entity",
+          "description": "Missing Mass property - will have no behavior",
+          "properties": {
+            "Position": [1, 6.371e6, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.2,
+            "Visualize": true,
+            "Color": "Magenta"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Magnetism + Earth: metallic vs non-metallic entities with N-body gravity",
+      "configurationFile": "NBodySetup.json",
+      "description": "Two entities under N-body gravity: one metallic (affected by magnetic field), one non-metallic (gravity only)",
+      "headerLines": [
+        "TEST CASE 10: Magnetism + Earth - Metallic vs Non-Metallic",
+        "Metal ball: N-body gravity + magnetic force (upward)",
+        "Plastic ball: N-body gravity only"
+      ],
+      "entities": [
+        {
+          "name": "Earth",
+          "description": "Planet Earth - massive body at origin providing gravitational attraction",
+          "properties": {
+            "Mass": 5.97e24,
+            "Position": [0, 0, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 6.371e6,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "Visualize": false,
+            "Color": "Blue"
+          }
+        },
+        {
+          "name": "Metal ball",
+          "description": "Metallic object (has MagnetismForce property) - affected by N-body gravity and magnetic field (upward)",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [-1, 6.371e6, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.2,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "MagnetismForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Silver"
+          }
+        },
+        {
+          "name": "Plastic ball",
+          "description": "Non-metallic object (no MagnetismForce property) - affected by N-body gravity and drag only",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [1, 6.371e6, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.2,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Orange"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wind effect + Earth: large radius vs small radius with N-body gravity",
+      "configurationFile": "NBodySetup.json",
+      "description": "Two entities with same mass under N-body gravity: one with large radius (affected by wind), one with small radius (minimal wind effect)",
+      "headerLines": [
+        "TEST CASE 11: Wind Effect + Earth - Large vs Small Radius",
+        "Large ball: N-body gravity + wind (large cross-section)",
+        "Small ball: N-body gravity + minimal wind (small cross-section)"
+      ],
+      "entities": [
+        {
+          "name": "Earth",
+          "description": "Planet Earth - massive body at origin providing gravitational attraction",
+          "properties": {
+            "Mass": 5.97e24,
+            "Position": [0, 0, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 6.371e6,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "WindForce": [0, 0, 0],
+            "Visualize": false,
+            "Color": "Blue"
+          }
+        },
+        {
+          "name": "Large ball (wind-affected)",
+          "description": "Mass=1.0kg, Radius=1.0m - large cross-section, significantly affected by wind",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [-1.5, 6.371e6, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 1.0,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "WindForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "DeepSkyBlue"
+          }
+        },
+        {
+          "name": "Small ball (minimal wind)",
+          "description": "Mass=1.0kg, Radius=0.5m - small cross-section, minimal wind effect",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [1.5, 6.371e6, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.5,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "WindForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Turquoise"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Combined forces + Earth: gravity only, gravity+magnetism, gravity+wind, gravity+magnetism+wind with N-body",
+      "configurationFile": "NBodySetup.json",
+      "description": "Four entities with identical size/mass but different force combinations under N-body gravity: gravity-only, gravity+magnetism, gravity+wind, gravity+magnetism+wind",
+      "headerLines": [
+        "TEST CASE 12: Combined Forces + Earth - Force Composition with N-Body",
+        "Entity 1: N-body gravity only (downward)",
+        "Entity 2: N-body gravity + magnetism (upward magnetic force)",
+        "Entity 3: N-body gravity + wind (horizontal wind push)",
+        "Entity 4: N-body gravity + magnetism + wind (all forces)"
+      ],
+      "entities": [
+        {
+          "name": "Earth",
+          "description": "Planet Earth - massive body at origin providing gravitational attraction",
+          "properties": {
+            "Mass": 5.97e24,
+            "Position": [0, 0, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 6.371e6,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "Visualize": false,
+            "Color": "Blue"
+          }
+        },
+        {
+          "name": "Gravity only",
+          "description": "Non-metallic, no wind (missing MagnetismForce and WindForce properties) - N-body gravity only",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [-3, 6.371e6, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.3,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Red"
+          }
+        },
+        {
+          "name": "Gravity + Magnetism",
+          "description": "Metallic (has MagnetismForce property), no wind effect - N-body gravity and magnetic field (upward force counteracts gravity)",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [-1, 6.371e6, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.3,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "MagnetismForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Gold"
+          }
+        },
+        {
+          "name": "Gravity + Wind",
+          "description": "Non-metallic (no MagnetismForce property), affected by wind - N-body gravity and wind force (horizontal push)",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [1, 6.371e6, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.3,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "WindForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Cyan"
+          }
+        },
+        {
+          "name": "Gravity + Wind + Magnetism",
+          "description": "Metallic (has MagnetismForce and WindForce properties) - N-body gravity+magnetism+wind (all forces active)",
+          "properties": {
+            "Mass": 1.0,
+            "Position": [3, 6.371e6, 0],
+            "Displacement": [0, 0, 0],
+            "CurrentSpeed": [0, 0, 0],
+            "Radius": 0.3,
+            "GravityForce": [0, 0, 0],
+            "DragForce": [0, 0, 0],
+            "MagnetismForce": [0, 0, 0],
+            "WindForce": [0, 0, 0],
+            "Visualize": true,
+            "Color": "Lime"
+          }
+        }
+      ]
+    }
+  ]
+}

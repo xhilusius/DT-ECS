@@ -26,17 +26,19 @@ using Simulation.StateManager;
 /// The wind force is output independently and summed by PhysicsIntegrator
 /// with forces from other models (e.g., GravityModel, DragModel, MagnetismModel).
 /// This enables true parallel execution of force models on multi-core systems.
+/// Uses double precision for WindForce to handle Earth-scale simulations.
 /// </summary>
 public class WindForceModel : ISimulationModel
 {
-    private const float AirDensity = 1.225f; // kg/m³ at sea level
-    private const float DragCoefficientSphere = 0.47f; // Typical drag coefficient for a sphere
-    private Vector3 _windVelocity; // Wind velocity vector in m/s
+    private const double AirDensity = 1.225; // kg/m³ at sea level
+    private const double DragCoefficientSphere = 0.47; // Typical drag coefficient for a sphere
+    private double[] _windVelocity; // Wind velocity vector in m/s [x, y, z]
 
     public WindForceModel(Vector3? windVelocity = null)
     {
         // Default wind blows in positive z direction at 5 m/s
-        _windVelocity = windVelocity ?? new Vector3(0, 0, 5.0f);
+        var defaultWind = windVelocity ?? new Vector3(0, 0, 5.0f);
+        _windVelocity = new double[] { defaultWind.X, defaultWind.Y, defaultWind.Z };
     }
 
     /// <summary>
@@ -44,7 +46,7 @@ public class WindForceModel : ISimulationModel
     /// </summary>
     public void SetWindVelocity(Vector3 velocity)
     {
-        _windVelocity = velocity;
+        _windVelocity = new double[] { velocity.X, velocity.Y, velocity.Z };
     }
 
     /// <summary>
@@ -85,7 +87,7 @@ public class WindForceModel : ISimulationModel
                     : 0.01f;
 
                 // Calculate wind force
-                Vector3 windForce = CalculateWindForce(radius);
+                double[] windForce = CalculateWindForce(radius);
                 outputForces.Add(windForce);
             }
 
@@ -100,24 +102,25 @@ public class WindForceModel : ISimulationModel
     /// Calculates wind force based on wind velocity and object radius.
     /// Wind applies force in the direction of the wind.
     /// </summary>
-    private Vector3 CalculateWindForce(float radius)
+    private double[] CalculateWindForce(float radius)
     {
         if (radius <= 0)
-            return Vector3.Zero;
+            return new double[] { 0, 0, 0 };
 
-        float windSpeedMagnitude = _windVelocity.Length();
-        Vector3 windForce = Vector3.Zero;
+        double windSpeedMagnitude = Math.Sqrt(_windVelocity[0] * _windVelocity[0] + _windVelocity[1] * _windVelocity[1] + _windVelocity[2] * _windVelocity[2]);
+        double[] windForce = new double[] { 0, 0, 0 };
 
         if (windSpeedMagnitude > 0)
         {
             // Wind force: F_wind = 0.5 * ρ * v_wind² * Cd * A
-            float crossSectionArea = MathF.PI * radius * radius;
-            float windForceMagnitude = 0.5f * AirDensity * windSpeedMagnitude * windSpeedMagnitude 
+            double crossSectionArea = Math.PI * radius * radius;
+            double windForceMagnitude = 0.5 * AirDensity * windSpeedMagnitude * windSpeedMagnitude 
                                       * DragCoefficientSphere * crossSectionArea;
 
-            // Wind force acts in the direction of wind
-            Vector3 windDirection = _windVelocity / windSpeedMagnitude;
-            windForce = windDirection * windForceMagnitude;
+            // Wind force acts in the direction of wind (normalized)
+            windForce[0] = (_windVelocity[0] / windSpeedMagnitude) * windForceMagnitude;
+            windForce[1] = (_windVelocity[1] / windSpeedMagnitude) * windForceMagnitude;
+            windForce[2] = (_windVelocity[2] / windSpeedMagnitude) * windForceMagnitude;
         }
 
         return windForce;

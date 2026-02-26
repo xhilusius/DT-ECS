@@ -1,23 +1,23 @@
 {
-  "name": "Default Gravity and Position Simulation",
-  "description": "Simulation with parallel force composition: Force models run in parallel, PhysicsIntegrator sums forces",
+  "name": "N-Body Gravity and Position Simulation",
+  "description": "Simulation with parallel force composition: N-body gravity runs in parallel, PhysicsIntegrator sums forces",
   "timeStep": {
     "value": 10,
     "unit": "ms"
   },
   "parallel": true,
   "stepDelayMs": 20,
-  "simulationSteps": 200,
+  "simulationSteps": 500,
 
   "simulationModels": [
     {
-      "name": "GravityModel",
-      "inputProperties": ["GravityForce","Mass"],
+      "name": "NBodyGravityModel",
+      "inputProperties": ["Mass", "Position", "GravityForce"],
       "outputProperties": ["GravityForce"]
     },
     {
       "name": "DragModel",
-      "inputProperties": ["CurrentSpeed", "Radius", "Mass", "DragForce"],
+      "inputProperties": ["CurrentSpeed", "Radius", "Mass","DragForce"],
       "outputProperties": ["DragForce"]
     },
     {
@@ -43,9 +43,8 @@
     }
   ],
   "executionBatches": [
-    ["GravityModel", "DragModel", "MagnetismModel", "WindForceModel"],
+    ["NBodyGravityModel", "DragModel", "MagnetismModel", "WindForceModel"],
     ["PhysicsIntegrator"],
     ["PositionModel"]
   ]
 }
-

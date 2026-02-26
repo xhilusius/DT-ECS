@@ -23,6 +23,7 @@ public class SimulationModelFactory
         return modelName switch
         {
             "GravityModel" => new GravityModel(timeStepSeconds),
+            "NBodyGravityModel" => new NBodyGravityModel(timeStepSeconds),
             "DragModel" => new DragModel(),
             "MagnetismModel" => new MagnetismModel(timeStepSeconds),
             "WindForceModel" => new WindForceModel(),

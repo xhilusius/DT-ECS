@@ -25,10 +25,11 @@ using Simulation.StateManager;
 /// The magnetic force is output independently and summed by PhysicsIntegrator
 /// with forces from other models (e.g., GravityModel, WindForceModel).
 /// This enables true parallel execution of force models on multi-core systems.
+/// Uses double precision for MagnetismForce to handle Earth-scale simulations.
 /// </summary>
 public class MagnetismModel : ISimulationModel
 {
-    private const float MagneticFieldStrength = 2.5f; // m/s² (adjustable magnetic acceleration)
+    private const double MagneticFieldStrength = 2.5; // m/s² (adjustable magnetic acceleration)
     private readonly float _timeStepSeconds;
 
     public MagnetismModel(float timeStepSeconds)
@@ -81,8 +82,8 @@ public class MagnetismModel : ISimulationModel
                     : 1.0f;
 
                 // Calculate magnetic force: F_magnetic = mass * a_magnetic
-                // Magnetic acceleration is constant: 5.0 m/s² upward
-                Vector3 magneticForce = new Vector3(0, mass * MagneticFieldStrength, 0);
+                // Magnetic acceleration is constant: 2.5 m/s² upward
+                double[] magneticForce = new double[] { 0, mass * MagneticFieldStrength, 0 };
                 outputForces.Add(magneticForce);
             }
 

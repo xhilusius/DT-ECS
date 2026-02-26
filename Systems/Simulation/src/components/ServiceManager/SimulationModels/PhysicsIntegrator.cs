@@ -20,17 +20,18 @@ using Simulation.StateManager;
 /// This model runs AFTER all force-producing models so that all forces are accumulated
 /// before integration. The use of separate force properties enables safe parallel execution
 /// of force models on multi-core systems without race conditions.
+/// Uses double precision for CurrentSpeed and Displacement to handle Earth-scale simulations.
 /// </summary>
 public class PhysicsIntegrator : ISimulationModel
 {
-    private readonly float _timeStepSeconds;
+    private readonly double _timeStepSeconds;
 
     public PhysicsIntegrator(float timeStepSeconds)
     {
         if (timeStepSeconds <= 0)
             throw new ArgumentOutOfRangeException(nameof(timeStepSeconds), "Time step must be greater than zero.");
 
-        _timeStepSeconds = timeStepSeconds;
+        _timeStepSeconds = (double)timeStepSeconds;
     }
 
     /// <summary>
@@ -91,42 +92,54 @@ public class PhysicsIntegrator : ISimulationModel
                     ? massValues[massIndex] as float? ?? 1.0f
                     : 1.0f;
 
-                // Extract gravity force (optional)
-                var gravityForce = gravityForceIndex >= 0 && gravityForceIndex < gravityForceValues.Count
-                    ? gravityForceValues[gravityForceIndex] as Vector3? ?? Vector3.Zero
-                    : Vector3.Zero;
+                // Extract gravity force (optional) - now double[]
+                var gravityForce = gravityForceIndex >= 0 && gravityForceIndex < gravityForceValues.Count && gravityForceValues[gravityForceIndex] is double[] gf && gf.Length == 3
+                    ? gf
+                    : new double[] { 0, 0, 0 };
 
-                // Extract drag force (optional)
-                var dragForce = dragForceIndex >= 0 && dragForceIndex < dragForceValues.Count
-                    ? dragForceValues[dragForceIndex] as Vector3? ?? Vector3.Zero
-                    : Vector3.Zero;
+                // Extract drag force (optional) - now double[]
+                var dragForce = dragForceIndex >= 0 && dragForceIndex < dragForceValues.Count && dragForceValues[dragForceIndex] is double[] df && df.Length == 3
+                    ? df
+                    : new double[] { 0, 0, 0 };
 
-                // Extract magnetism force (optional)
-                var magnetismForce = magnetismForceIndex >= 0 && magnetismForceIndex < magnetismForceValues.Count
-                    ? magnetismForceValues[magnetismForceIndex] as Vector3? ?? Vector3.Zero
-                    : Vector3.Zero;
+                // Extract magnetism force (optional) - now double[]
+                var magnetismForce = magnetismForceIndex >= 0 && magnetismForceIndex < magnetismForceValues.Count && magnetismForceValues[magnetismForceIndex] is double[] mf && mf.Length == 3
+                    ? mf
+                    : new double[] { 0, 0, 0 };
 
-                // Extract wind force (optional)
-                var windForce = windForceIndex >= 0 && windForceIndex < windForceValues.Count
-                    ? windForceValues[windForceIndex] as Vector3? ?? Vector3.Zero
-                    : Vector3.Zero;
+                // Extract wind force (optional) - now double[]
+                var windForce = windForceIndex >= 0 && windForceIndex < windForceValues.Count && windForceValues[windForceIndex] is double[] wf && wf.Length == 3
+                    ? wf
+                    : new double[] { 0, 0, 0 };
 
-                // Extract current speed
-                var currentSpeed = speedIndex < currentSpeedValues.Count
-                    ? currentSpeedValues[speedIndex] as Vector3? ?? Vector3.Zero
-                    : Vector3.Zero;
+                // Extract current speed - now double[]
+                var currentSpeed = speedIndex < currentSpeedValues.Count && currentSpeedValues[speedIndex] is double[] cs && cs.Length == 3
+                    ? cs
+                    : new double[] { 0, 0, 0 };
 
-                // Sum all forces to get net force
-                Vector3 netForce = gravityForce + dragForce + magnetismForce + windForce;
+                // Sum all forces to get net force (component-wise)
+                double[] netForce = new double[3];
+                netForce[0] = gravityForce[0] + dragForce[0] + magnetismForce[0] + windForce[0];
+                netForce[1] = gravityForce[1] + dragForce[1] + magnetismForce[1] + windForce[1];
+                netForce[2] = gravityForce[2] + dragForce[2] + magnetismForce[2] + windForce[2];
 
                 // Calculate net acceleration from accumulated forces
-                Vector3 netAcceleration = mass > 0 ? netForce / mass : Vector3.Zero;
+                double[] netAcceleration = new double[3];
+                netAcceleration[0] = mass > 0 ? netForce[0] / mass : 0;
+                netAcceleration[1] = mass > 0 ? netForce[1] / mass : 0;
+                netAcceleration[2] = mass > 0 ? netForce[2] / mass : 0;
 
                 // Calculate new velocity: v_new = v_old + a * t
-                Vector3 newSpeed = currentSpeed + (netAcceleration * _timeStepSeconds);
+                double[] newSpeed = new double[3];
+                newSpeed[0] = currentSpeed[0] + netAcceleration[0] * _timeStepSeconds;
+                newSpeed[1] = currentSpeed[1] + netAcceleration[1] * _timeStepSeconds;
+                newSpeed[2] = currentSpeed[2] + netAcceleration[2] * _timeStepSeconds;
 
                 // Calculate displacement: d = v_old * t + 0.5 * a * t²
-                Vector3 displacement = (currentSpeed * _timeStepSeconds) + (netAcceleration * 0.5f * _timeStepSeconds * _timeStepSeconds);
+                double[] displacement = new double[3];
+                displacement[0] = currentSpeed[0] * _timeStepSeconds + 0.5 * netAcceleration[0] * _timeStepSeconds * _timeStepSeconds;
+                displacement[1] = currentSpeed[1] * _timeStepSeconds + 0.5 * netAcceleration[1] * _timeStepSeconds * _timeStepSeconds;
+                displacement[2] = currentSpeed[2] * _timeStepSeconds + 0.5 * netAcceleration[2] * _timeStepSeconds * _timeStepSeconds;
 
                 // Update output arrays
                 if (speedIndex < outputSpeeds.Count)
