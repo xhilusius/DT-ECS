@@ -52,10 +52,11 @@ public class PhysicsIntegrator : ISimulationModel
             var magnetismForceValues = inputBundle.Arrays.ContainsKey("MagnetismForce") ? inputBundle.Arrays["MagnetismForce"] : new List<object>();
             var windForceValues = inputBundle.Arrays.ContainsKey("WindForce") ? inputBundle.Arrays["WindForce"] : new List<object>();
             var currentSpeedValues = inputBundle.Arrays.ContainsKey("CurrentSpeed") ? inputBundle.Arrays["CurrentSpeed"] : new List<object>();
+            var displacementValues = inputBundle.Arrays.ContainsKey("Displacement") ? inputBundle.Arrays["Displacement"] : new List<object>();
 
-            // Output arrays for updated velocity and displacement
+            // Output arrays - preserve existing arrays to maintain entity indices
             var outputSpeeds = new List<object>(currentSpeedValues);
-            var outputDisplacements = new List<object>();
+            var outputDisplacements = new List<object>(displacementValues);
 
             if (inputBundle.ValidEntityIds.Count == 0)
             {
@@ -73,6 +74,9 @@ public class PhysicsIntegrator : ISimulationModel
                 // All force properties are optional - only present if entity is affected by that force
                 int massIndex = inputBundle.EntityToPropertyIndices[entityId]["Mass"];
                 int speedIndex = inputBundle.EntityToPropertyIndices[entityId]["CurrentSpeed"];
+                int displacementIndex = inputBundle.EntityToPropertyIndices[entityId].ContainsKey("Displacement")
+                    ? inputBundle.EntityToPropertyIndices[entityId]["Displacement"]
+                    : -1;
                 
                 int gravityForceIndex = inputBundle.EntityToPropertyIndices[entityId].ContainsKey("GravityForce") 
                     ? inputBundle.EntityToPropertyIndices[entityId]["GravityForce"] 
@@ -141,13 +145,17 @@ public class PhysicsIntegrator : ISimulationModel
                 displacement[1] = currentSpeed[1] * _timeStepSeconds + 0.5 * netAcceleration[1] * _timeStepSeconds * _timeStepSeconds;
                 displacement[2] = currentSpeed[2] * _timeStepSeconds + 0.5 * netAcceleration[2] * _timeStepSeconds * _timeStepSeconds;
 
-                // Update output arrays
+                // Update output arrays at correct indices to preserve alignment
                 if (speedIndex < outputSpeeds.Count)
                     outputSpeeds[speedIndex] = newSpeed;
                 else
                     outputSpeeds.Add(newSpeed);
 
-                outputDisplacements.Add(displacement);
+                // Update or add displacement at correct index
+                if (displacementIndex >= 0 && displacementIndex < outputDisplacements.Count)
+                    outputDisplacements[displacementIndex] = displacement;
+                else
+                    outputDisplacements.Add(displacement);
             }
 
             // Return output as dictionary

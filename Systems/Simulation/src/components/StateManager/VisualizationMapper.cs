@@ -377,7 +377,7 @@ public class VisualizationMapper
     /// 
     /// DEPENDENCY MAPPING:
     /// - EntityId: Required, must be valid string identifier
-    /// - Position: Required, Vector3 in simulation coordinates
+    /// - Position: Required, double[] with 3 elements (X, Y, Z) for high precision
     /// - Radius: Required for accurate visualization, defaults to 0.1m
     /// - Color: Optional, defaults to Blue if not provided
     /// </summary>
@@ -399,17 +399,16 @@ public class VisualizationMapper
 /// Data contract for entity visualization information.
 /// Extracted from simulation state for visualization purposes.
 /// 
-/// DESIGN NOTE: Separate struct to decouple simulation entity representation
-/// from visualization requirements. Allows future changes to either system
-/// without requiring synchronized updates.
+/// DESIGN NOTE: Uses double[] for position to maintain high precision from simulation.
+/// This ensures visualization receives exact coordinate values without float conversion loss.
 /// </summary>
 public struct EntityVisualizationData
 {
     /// <summary>Entity identifier (must match simulation entity ID for tracking)</summary>
     public string EntityId { get; set; }
 
-    /// <summary>Current 3D position (required)</summary>
-    public Vector3 Position { get; set; }
+    /// <summary>Current 3D position as double[] [X, Y, Z] for full simulation precision</summary>
+    public double[] Position { get; set; }
 
     /// <summary>Sphere radius for visualization (optional, defaults to 0.1m)</summary>
     public float? Radius { get; set; }
@@ -417,8 +416,10 @@ public struct EntityVisualizationData
     /// <summary>Visual color (optional, defaults to Blue)</summary>
     public System.Drawing.Color? Color { get; set; }
 
-    public EntityVisualizationData(string entityId, Vector3 position, float? radius = null, System.Drawing.Color? color = null)
+    public EntityVisualizationData(string entityId, double[] position, float? radius = null, System.Drawing.Color? color = null)
     {
+        if (position == null || position.Length != 3)
+            throw new ArgumentException("Position must be a double array with 3 elements", nameof(position));
         EntityId = entityId;
         Position = position;
         Radius = radius;

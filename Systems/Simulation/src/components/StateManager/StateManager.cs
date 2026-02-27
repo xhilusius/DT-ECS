@@ -114,42 +114,6 @@ public class StateManager
     }
 
     /// <summary>
-    /// Fetches property arrays for a specific archetype and returns entity-aware mapping.
-    /// Queries RepositoryManager for archetype arrays and entity-to-index mappings.
-    /// 
-    /// Flow:
-    /// 1. Query RepositoryManager for archetype properties and index mappings
-    /// </summary>
-    /// <param name="archetypeName">The archetype name/ID (e.g., "GravityModel", "PositionModel")</param>
-    /// <returns>Bundle containing arrays and entity-to-index mappings from RepositoryManager</returns>
-    public async Task<PropertyArrayBundle> GetPropertiesByArchetypeAsync(string archetypeName)
-    {
-        if (string.IsNullOrWhiteSpace(archetypeName))
-            throw new ArgumentException("Archetype name cannot be null or empty", nameof(archetypeName));
-
-        try
-        {
-            // Step 1: Query RepositoryManager for archetype properties
-                // RepositoryManager internally queries ArchetypeMapper to resolve the archetype definition
-            var result = await _repositoryManager.GetPropertiesForArchetypeAsync(archetypeName);
-
-            if (result == null || result.Arrays.Count == 0)
-                throw new InvalidOperationException($"Archetype '{archetypeName}' not found or has no properties");
-
-            return new PropertyArrayBundle
-            {
-                Arrays = result.Arrays,
-                ValidEntityIds = result.ValidEntityIds,
-                EntityToPropertyIndices = result.EntityToPropertyIndices
-            };
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException($"Failed to get properties for archetype '{archetypeName}'", ex);
-        }
-    }
-
-    /// <summary>
     /// Fetches property arrays for a specific archetype plus optional property arrays.
     /// Optional properties are fetched when available and do not restrict the entity set.
     /// The returned mapping includes indices for required properties and optional ones when present.
@@ -459,16 +423,6 @@ public class StateManager
     }
 
     /// <summary>
-    /// Sets property units used in state reporting.
-    /// </summary>
-    public void SetPropertyUnits(Dictionary<string, string>? propertyUnits)
-    {
-        _propertyUnits = propertyUnits == null
-            ? new Dictionary<string, string>()
-            : new Dictionary<string, string>(propertyUnits, StringComparer.OrdinalIgnoreCase);
-    }
-
-    /// <summary>
     /// Sets the properties configuration containing property visibility settings.
     /// Configures which properties to show in state reports based on their category.
     /// </summary>
@@ -654,6 +608,7 @@ public class StateManager
     /// - Color: OPTIONAL - defaults to Blue if not provided
     /// 
     /// Returns null if entity lacks required Position property.
+    /// Maintains full double precision for positions sent to visualization.
     /// </summary>
     private EntityVisualizationData? ExtractEntityVisualizationData(int entityId, Entity entity, Dictionary<string, List<object>> allProperties)
     {
@@ -674,8 +629,8 @@ public class StateManager
         // Entity ID as string for visualization
         string vizEntityId = $"Entity_{entityId}";
 
-        // Position is REQUIRED for visualization - now double[]
-        Vector3 position = Vector3.Zero;
+        // Position is REQUIRED for visualization - keep as double[] for full precision
+        double[]? posArray = null;
         
         if (allProperties.ContainsKey("Position"))
         {
@@ -683,10 +638,9 @@ public class StateManager
             if (posIndex >= 0 && posIndex < allProperties["Position"].Count)
             {
                 var posValue = allProperties["Position"][posIndex];
-                if (posValue is double[] posArray && posArray.Length == 3)
+                if (posValue is double[] pos && pos.Length == 3)
                 {
-                    // Use absolute position
-                    position = new Vector3((float)posArray[0], (float)posArray[1], (float)posArray[2]);
+                    posArray = pos;
                 }
                 else
                 {
@@ -733,9 +687,8 @@ public class StateManager
             }
         }
 
-        return new EntityVisualizationData(vizEntityId, position, radius, color);
+        return new EntityVisualizationData(vizEntityId, posArray!, radius, color);
     }
 
     #endregion
 }
-

@@ -6,18 +6,21 @@ using System.Drawing;
 
 /// <summary>
 /// Simple position DTO that serializes properly to JSON
+/// Now using double precision to match simulation's internal representation
 /// </summary>
 public class PositionDto
 {
-    public float X { get; set; }
-    public float Y { get; set; }
-    public float Z { get; set; }
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Z { get; set; }
 
-    public PositionDto(Vector3 vector)
+    public PositionDto(double[] position)
     {
-        X = vector.X;
-        Y = vector.Y;
-        Z = vector.Z;
+        if (position == null || position.Length != 3)
+            throw new ArgumentException("Position must be a double array with 3 elements", nameof(position));
+        X = position[0];
+        Y = position[1];
+        Z = position[2];
     }
 }
 
@@ -54,7 +57,7 @@ public class BallUpdate
     public float Radius { get; set; }
     public ColorDto Color { get; set; }
 
-    public BallUpdate(string entityId, Vector3 position, float radius, Color color)
+    public BallUpdate(string entityId, double[] position, float radius, Color color)
     {
         EntityId = entityId;
         Position = new PositionDto(position);

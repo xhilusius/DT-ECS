@@ -35,17 +35,18 @@ public class PositionModel : ISimulationModel
             var positionValues = inputBundle.Arrays.ContainsKey("Position") ? inputBundle.Arrays["Position"] : new List<object>();
             var displacementValues = inputBundle.Arrays.ContainsKey("Displacement") ? inputBundle.Arrays["Displacement"] : new List<object>();
 
-            // Prepare output arrays - Position will be updated, Displacement will be reset to zero
-            var newPositions = new List<object>();
-            var resetDisplacements = new List<object>();
+            // Prepare output arrays - start with copies of original arrays to preserve indices
+            // Only update positions for entities in ValidEntityIds that have both properties
+            var newPositions = new List<object>(positionValues);
+            var resetDisplacements = new List<object>(displacementValues);
 
             if (inputBundle.ValidEntityIds.Count == 0)
             {
-                // No valid entities to process
+                // No valid entities to process - return unchanged arrays
                 return new Dictionary<string, List<object>> 
                 { 
-                    { "Position", new List<object>() },
-                    { "Displacement", new List<object>() }
+                    { "Position", newPositions },
+                    { "Displacement", resetDisplacements }
                 };
             }
 
@@ -71,9 +72,10 @@ public class PositionModel : ISimulationModel
                 newPosition[1] = currentPosition[1] + displacement[1];
                 newPosition[2] = currentPosition[2] + displacement[2];
 
-                newPositions.Add(newPosition);
-                // Reset displacement to zero for next timestep
-                resetDisplacements.Add(new double[] { 0, 0, 0 });
+                // Update at the CORRECT index to preserve array alignment
+                newPositions[positionIndex] = newPosition;
+                // Reset displacement to zero for next timestep at correct index
+                resetDisplacements[displacementIndex] = new double[] { 0, 0, 0 };
             }
 
             // Return output as dictionary

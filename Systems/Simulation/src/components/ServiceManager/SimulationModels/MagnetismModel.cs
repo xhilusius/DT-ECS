@@ -54,10 +54,10 @@ public class MagnetismModel : ISimulationModel
         {
             // Extract input arrays
             var massValues = inputBundle.Arrays.ContainsKey("Mass") ? inputBundle.Arrays["Mass"] : new List<object>();
-            // Note: MagnetismForce array exists as a filter - presence in ValidEntityIds means the entity is metallic
+            var magnetismForceValues = inputBundle.Arrays.ContainsKey("MagnetismForce") ? inputBundle.Arrays["MagnetismForce"] : new List<object>();
 
-            // Output array for magnetic forces
-            var outputForces = new List<object>();
+            // Preserve existing force array to maintain entity indices
+            var outputForces = new List<object>(magnetismForceValues);
 
             if (inputBundle.ValidEntityIds.Count == 0)
             {
@@ -74,7 +74,9 @@ public class MagnetismModel : ISimulationModel
             {
                 // Get the indices of this entity in each property array
                 int massIndex = inputBundle.EntityToPropertyIndices[entityId]["Mass"];
-                // MagnetismForce index exists but we don't need it - entity presence confirms it's metallic
+                int magnetismForceIndex = inputBundle.EntityToPropertyIndices[entityId].ContainsKey("MagnetismForce")
+                    ? inputBundle.EntityToPropertyIndices[entityId]["MagnetismForce"]
+                    : -1;
 
                 // Extract mass
                 var mass = massIndex < massValues.Count
@@ -84,7 +86,12 @@ public class MagnetismModel : ISimulationModel
                 // Calculate magnetic force: F_magnetic = mass * a_magnetic
                 // Magnetic acceleration is constant: 2.5 m/s² upward
                 double[] magneticForce = new double[] { 0, mass * MagneticFieldStrength, 0 };
-                outputForces.Add(magneticForce);
+                
+                // Update or add force at correct index to preserve alignment
+                if (magnetismForceIndex >= 0 && magnetismForceIndex < outputForces.Count)
+                    outputForces[magnetismForceIndex] = magneticForce;
+                else
+                    outputForces.Add(magneticForce);
             }
 
             return new Dictionary<string, List<object>>

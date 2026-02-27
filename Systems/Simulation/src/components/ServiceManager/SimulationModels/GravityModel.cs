@@ -46,9 +46,10 @@ public class GravityModel : ISimulationModel
         {
             // Extract input arrays
             var massValues = inputBundle.Arrays.ContainsKey("Mass") ? inputBundle.Arrays["Mass"] : new List<object>();
+            var gravityForceValues = inputBundle.Arrays.ContainsKey("GravityForce") ? inputBundle.Arrays["GravityForce"] : new List<object>();
 
-            // Output array for gravity forces
-            var outputForces = new List<object>();
+            // Preserve existing force array to maintain entity indices
+            var outputForces = new List<object>(gravityForceValues);
 
             if (inputBundle.ValidEntityIds.Count == 0)
             {
@@ -63,6 +64,9 @@ public class GravityModel : ISimulationModel
             {
                 // Get the index of this entity in the mass array
                 int massIndex = inputBundle.EntityToPropertyIndices[entityId]["Mass"];
+                int gravityForceIndex = inputBundle.EntityToPropertyIndices[entityId].ContainsKey("GravityForce")
+                    ? inputBundle.EntityToPropertyIndices[entityId]["GravityForce"]
+                    : -1;
 
                 // Extract mass
                 var mass = massIndex < massValues.Count
@@ -71,7 +75,12 @@ public class GravityModel : ISimulationModel
 
                 // Calculate gravitational force: F_gravity = mass * g (downward in Y direction)
                 double[] gravityForce = new double[] { 0, -mass * GravitationalAcceleration, 0 };
-                outputForces.Add(gravityForce);
+                
+                // Update or add force at correct index to preserve alignment
+                if (gravityForceIndex >= 0 && gravityForceIndex < outputForces.Count)
+                    outputForces[gravityForceIndex] = gravityForce;
+                else
+                    outputForces.Add(gravityForce);
             }
 
             // Return output as dictionary

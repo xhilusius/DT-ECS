@@ -62,9 +62,10 @@ public class WindForceModel : ISimulationModel
         {
             // Extract input arrays
             var radiusValues = inputBundle.Arrays.ContainsKey("Radius") ? inputBundle.Arrays["Radius"] : new List<object>();
+            var windForceValues = inputBundle.Arrays.ContainsKey("WindForce") ? inputBundle.Arrays["WindForce"] : new List<object>();
 
-            // Output array for wind forces
-            var outputForces = new List<object>();
+            // Preserve existing force array to maintain entity indices
+            var outputForces = new List<object>(windForceValues);
 
             if (inputBundle.ValidEntityIds.Count == 0)
             {
@@ -80,6 +81,9 @@ public class WindForceModel : ISimulationModel
             {
                 // Get the index of this entity in each property array
                 int radiusIndex = inputBundle.EntityToPropertyIndices[entityId]["Radius"];
+                int windForceIndex = inputBundle.EntityToPropertyIndices[entityId].ContainsKey("WindForce")
+                    ? inputBundle.EntityToPropertyIndices[entityId]["WindForce"]
+                    : -1;
 
                 // Extract radius for wind calculation
                 var radius = radiusIndex < radiusValues.Count
@@ -88,7 +92,12 @@ public class WindForceModel : ISimulationModel
 
                 // Calculate wind force
                 double[] windForce = CalculateWindForce(radius);
-                outputForces.Add(windForce);
+                
+                // Update or add force at correct index to preserve alignment
+                if (windForceIndex >= 0 && windForceIndex < outputForces.Count)
+                    outputForces[windForceIndex] = windForce;
+                else
+                    outputForces.Add(windForce);
             }
 
             return new Dictionary<string, List<object>>

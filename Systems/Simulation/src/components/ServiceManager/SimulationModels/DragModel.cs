@@ -51,9 +51,10 @@ public class DragModel : ISimulationModel
             var speedValues = inputBundle.Arrays.ContainsKey("CurrentSpeed") ? inputBundle.Arrays["CurrentSpeed"] : new List<object>();
             var radiusValues = inputBundle.Arrays.ContainsKey("Radius") ? inputBundle.Arrays["Radius"] : new List<object>();
             var massValues = inputBundle.Arrays.ContainsKey("Mass") ? inputBundle.Arrays["Mass"] : new List<object>();
+            var dragForceValues = inputBundle.Arrays.ContainsKey("DragForce") ? inputBundle.Arrays["DragForce"] : new List<object>();
 
-            // Output array for drag forces
-            var outputForces = new List<object>();
+            // Preserve existing force array to maintain entity indices
+            var outputForces = new List<object>(dragForceValues);
 
             if (inputBundle.ValidEntityIds.Count == 0)
             {
@@ -70,6 +71,9 @@ public class DragModel : ISimulationModel
                 // Get the indices of this entity in each property array
                 int speedIndex = inputBundle.EntityToPropertyIndices[entityId]["CurrentSpeed"];
                 int radiusIndex = inputBundle.EntityToPropertyIndices[entityId]["Radius"];
+                int dragForceIndex = inputBundle.EntityToPropertyIndices[entityId].ContainsKey("DragForce")
+                    ? inputBundle.EntityToPropertyIndices[entityId]["DragForce"]
+                    : -1;
 
                 // Extract current speed - now double[]
                 var currentSpeed = speedIndex < speedValues.Count && speedValues[speedIndex] is double[] cs && cs.Length == 3
@@ -83,7 +87,12 @@ public class DragModel : ISimulationModel
 
                 // Calculate drag force
                 double[] dragForce = CalculateDragForce(radius, currentSpeed);
-                outputForces.Add(dragForce);
+                
+                // Update or add force at correct index to preserve alignment
+                if (dragForceIndex >= 0 && dragForceIndex < outputForces.Count)
+                    outputForces[dragForceIndex] = dragForce;
+                else
+                    outputForces.Add(dragForce);
             }
 
             return new Dictionary<string, List<object>>

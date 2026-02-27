@@ -39,13 +39,18 @@ public class NBodyGravityModel : ISimulationModel
         {
             var massValues = inputBundle.Arrays.ContainsKey("Mass") ? inputBundle.Arrays["Mass"] : new List<object>();
             var positionValues = inputBundle.Arrays.ContainsKey("Position") ? inputBundle.Arrays["Position"] : new List<object>();
+            var gravityForceValues = inputBundle.Arrays.ContainsKey("GravityForce") ? inputBundle.Arrays["GravityForce"] : new List<object>();
 
-            var outputForces = new List<object>();
+            // Preserve existing force array to maintain entity indices
+            var outputForces = new List<object>(gravityForceValues);
 
             foreach (var entityId in inputBundle.ValidEntityIds)
             {
                 int massIndex = inputBundle.EntityToPropertyIndices[entityId]["Mass"];
                 int positionIndex = inputBundle.EntityToPropertyIndices[entityId]["Position"];
+                int gravityForceIndex = inputBundle.EntityToPropertyIndices[entityId].ContainsKey("GravityForce")
+                    ? inputBundle.EntityToPropertyIndices[entityId]["GravityForce"]
+                    : -1;
 
                 var mass = massIndex < massValues.Count
                     ? massValues[massIndex] as float? ?? 1.0f
@@ -90,7 +95,11 @@ public class NBodyGravityModel : ISimulationModel
                     totalForce[2] += (dz / distance) * forceMagnitude;
                 }
 
-                outputForces.Add(totalForce);
+                // Update or add force at correct index to preserve alignment
+                if (gravityForceIndex >= 0 && gravityForceIndex < outputForces.Count)
+                    outputForces[gravityForceIndex] = totalForce;
+                else
+                    outputForces.Add(totalForce);
             }
 
             return new Dictionary<string, List<object>>
