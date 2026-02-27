@@ -626,8 +626,10 @@ public class StateManager
             }
         }
 
-        // Entity ID as string for visualization
-        string vizEntityId = $"Entity_{entityId}";
+        // Use entity name for visualization identifiers when available
+        string vizEntityId = string.IsNullOrWhiteSpace(entity.Name)
+            ? $"Entity_{entityId}"
+            : entity.Name;
 
         // Position is REQUIRED for visualization - keep as double[] for full precision
         double[]? posArray = null;

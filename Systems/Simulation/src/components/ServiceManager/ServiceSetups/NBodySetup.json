@@ -2,12 +2,12 @@
   "name": "N-Body Gravity and Position Simulation",
   "description": "Simulation with parallel force composition: N-body gravity runs in parallel, PhysicsIntegrator sums forces",
   "timeStep": {
-    "value": 100,
+    "value": 50,
     "unit": "ms"
   },
   "parallel": true,
-  "stepDelayMs": 20,
-  "simulationSteps": 100,
+  "stepDelayMs": 50,
+  "simulationSteps": 200,
 
   "simulationModels": [
     {
