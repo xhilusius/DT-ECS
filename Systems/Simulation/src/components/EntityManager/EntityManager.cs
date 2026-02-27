@@ -45,12 +45,7 @@ public class EntityManager
     /// </summary>
     private readonly Dictionary<int, HashSet<string>> _entityComposition;
     
-    /// <summary>
-    /// Maps each entity to its property indices in the repository.
-    /// Key: EntityId, Value: {PropertyType → Index in property array}
-    /// This mapping is populated when the entity is created via RegisterNewEntityWithStateAsync.
-    /// </summary>
-    private readonly Dictionary<int, Dictionary<string, int>> _entityPropertyIndices;
+
     
     /// <summary>
     /// Maps EntityId to the Entity object containing metadata (name, description).
@@ -64,6 +59,12 @@ public class EntityManager
     /// </summary>
     private int _nextEntityId;
 
+    /// <summary>
+    /// Tracks all entity names that have been used to ensure unique entity names.
+    /// When a duplicate name is attempted, an ID is appended to make it unique.
+    /// </summary>
+    private readonly HashSet<string> _usedEntityNames;
+
     
     /// <summary>
     /// StateManager reference for coordinating entity creation and property storage.
@@ -74,8 +75,8 @@ public class EntityManager
     {
         _propertyToEntityList = new Dictionary<string, List<int>>();
         _entityComposition = new Dictionary<int, HashSet<string>>();
-        _entityPropertyIndices = new Dictionary<int, Dictionary<string, int>>();
         _entityMetadata = new Dictionary<int, Entity>();
+        _usedEntityNames = new HashSet<string>();
         _nextEntityId = 0;
         _stateManager = null; // Will be set after StateManager is created
     }
@@ -126,10 +127,18 @@ public class EntityManager
         // Assign new entity ID
         int entityId = _nextEntityId++;
 
-        // Create and store entity metadata
-        var entity = new Entity(entityId, name, description)
+        // Ensure unique entity name: use exact name if available, otherwise append ID
+        string uniqueName = name;
+        if (_usedEntityNames.Contains(name))
         {
-            Name = name
+            uniqueName = $"{name}_{entityId}";
+        }
+        _usedEntityNames.Add(uniqueName);
+
+        // Create and store entity metadata
+        var entity = new Entity(entityId, uniqueName, description)
+        {
+            Name = uniqueName
         };
         _entityMetadata[entityId] = entity;
 
@@ -184,17 +193,12 @@ public class EntityManager
 
         try
         {
-            // Step 1: Register the entity in EntityManager (metadata + index tracking)
+            // Step 1: Register the entity in EntityManager (metadata only)
             var creationInfo = RegisterNewEntity(name, propertyDefaults.Keys, description);
             int entityId = creationInfo.Entity.Id;
-            
-            // Initialize index mapping for this entity
-            if (!_entityPropertyIndices.ContainsKey(entityId))
-            {
-                _entityPropertyIndices[entityId] = new Dictionary<string, int>();
-            }
 
-            // Step 2 & 3: Coordinate with StateManager to add each property and store indices
+            // Step 2 & 3: Coordinate with StateManager to add each property
+            var propertyIndicesDict = new Dictionary<string, int>();
             foreach (var propertyType in propertyDefaults.Keys)
             {
                 var initialValue = propertyDefaults[propertyType];
@@ -202,14 +206,13 @@ public class EntityManager
                 // Add property and capture the returned index
                 int index = await _stateManager.AddPropertyAsync(propertyType, initialValue);
                 
-                // Store the mapping: this entity's property is at this index in the repository
-                _entityPropertyIndices[entityId][propertyType] = index;
+                // Track the index for this notification
+                propertyIndicesDict[propertyType] = index;
             }
 
             // Step 4: Notify RepositoryManager of entity creation for cross-subsystem sync
             {
                 var propertyTypesList = creationInfo.Properties.ToList();
-                var propertyIndicesDict = _entityPropertyIndices[entityId];
                 _stateManager.NotifyEntityRegisteredAsync(entityId, name, propertyTypesList, propertyIndicesDict, description);
             }
 
@@ -250,17 +253,10 @@ public class EntityManager
             // Step 1: Add property via StateManager and capture the returned index
             int index = await _stateManager.AddPropertyAsync(propertyType, initialValue);
 
-            // Step 2: Store the index mapping for this entity
-            if (!_entityPropertyIndices.ContainsKey(entityId))
-            {
-                _entityPropertyIndices[entityId] = new Dictionary<string, int>();
-            }
-            _entityPropertyIndices[entityId][propertyType] = index;
-
-            // Step 3: Update EntityManager to track this entity at the new index
+            // Step 2: Update EntityManager to track this entity has this property
             AddPropertyToEntity(entityId, propertyType);
 
-            // Step 4: Notify RepositoryManager of property addition for cross-subsystem sync
+            // Step 3: Notify RepositoryManager of property addition for cross-subsystem sync
             _stateManager.NotifyPropertyAddedToEntityAsync(entityId, propertyType, index);
 
             Console.WriteLine($"Property '{propertyType}' added to Entity {entityId} at index {index}");
@@ -355,10 +351,7 @@ public class EntityManager
     /// <returns>Dictionary of propertyType → index in repository, or empty dict if entity not found</returns>
     public Dictionary<string, int> GetEntityPropertyIndices(int entityId)
     {
-        if (_entityPropertyIndices.TryGetValue(entityId, out var indices))
-        {
-            return new Dictionary<string, int>(indices);
-        }
+// Index queries should use Data-Storage EntityMapper instead
         return new Dictionary<string, int>();
     }
 
@@ -475,5 +468,95 @@ public class EntityManager
     public List<Entity> GetAllEntities()
     {
         return new List<Entity>(_entityMetadata.Values);
+    }
+
+
+
+    /// <summary>
+    /// Removes an entity completely from the EntityManager.
+    /// Internal method used by RemoveEntityWithStateAsync.
+    /// Cleans up all tracking structures and frees the entity name for reuse.
+    /// </summary>
+    /// <param name="entityId">The entity to remove</param>
+    public void RemoveEntity(int entityId)
+    {
+        if (!_entityMetadata.ContainsKey(entityId))
+            throw new ArgumentException($"Entity {entityId} does not exist", nameof(entityId));
+
+        try
+        {
+            // Step 1: Get entity name to free it from used names
+            var entity = _entityMetadata[entityId];
+            _usedEntityNames.Remove(entity.Name);
+
+            // Step 2: Remove from metadata
+            _entityMetadata.Remove(entityId);
+
+            // Step 3: Remove from composition tracking
+            if (_entityComposition.TryGetValue(entityId, out var properties))
+            {
+                // Remove entity from each property's list
+                foreach (var propertyType in properties)
+                {
+                    if (_propertyToEntityList.TryGetValue(propertyType, out var entityList))
+                    {
+                        entityList.Remove(entityId);
+                        
+                        // If no entities have this property, remove the property entry
+                        if (entityList.Count == 0)
+                        {
+                            _propertyToEntityList.Remove(propertyType);
+                        }
+                    }
+                }
+
+                _entityComposition.Remove(entityId);
+            }
+
+            Console.WriteLine($"Entity {entityId} ({entity.Name}) removed from EntityManager");
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to remove entity {entityId}", ex);
+        }
+    }
+
+    /// <summary>
+    /// Removes an entity completely with full StateManager coordination.
+    /// This is the primary method used by InteractionController.
+    /// Handles EntityManager removal AND StateManager property cleanup.
+    /// Frees the entity name for reuse and notifies the visualization system.
+    /// 
+    /// Flow:
+    /// 1. Coordinate with StateManager to remove all properties and handle index remapping
+    ///    (This is handled by Data-Storage EntityMapper)
+    /// 2. Remove entity from EntityManager (metadata, composition)
+    /// 3. Notify visualization system of entity deletion
+    /// </summary>
+    /// <param name="entityId">The entity to remove</param>
+    public async Task RemoveEntityWithStateAsync(int entityId)
+    {
+        if (!_entityMetadata.ContainsKey(entityId))
+            throw new ArgumentException($"Entity {entityId} does not exist", nameof(entityId));
+
+        if (_stateManager == null)
+            throw new InvalidOperationException("StateManager has not been set. Call SetStateManager() first.");
+
+        try
+        {
+            // Step 1: Coordinate with StateManager to remove all properties from storage
+            // This handles all index remapping in RepositoryManager/EntityMapper
+            await _stateManager.RemoveEntityAsync(entityId);
+
+            // Step 2: Remove entity from EntityManager (clean up metadata, composition)
+            RemoveEntity(entityId);
+
+            // Step 3: Notify visualization system of entity removal
+            await _stateManager.NotifyEntitiesRemovedAsync(new[] { entityId });
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to remove entity {entityId} with state coordination", ex);
+        }
     }
 }

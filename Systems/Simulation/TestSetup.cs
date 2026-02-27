@@ -15,9 +15,10 @@ public class TestSetup
     public required string ConfigurationFile { get; init; }
 
     /// <summary>
-    /// List of entities to create with their initial properties
+    /// Step-based actions to execute during the test run.
+    /// Step 0 actions are executed before the simulation starts.
     /// </summary>
-    public required List<EntityDefinition> Entities { get; init; }
+    public required List<TestStepDefinition> Steps { get; init; }
 
     /// <summary>
     /// Human-readable description of what this test setup represents
@@ -46,4 +47,43 @@ public class EntityDefinition
     /// Optional description of this entity's purpose
     /// </summary>
     public string? Description { get; init; }
+}
+
+/// <summary>
+/// Defines a list of actions to run at a specific simulation step.
+/// </summary>
+public class TestStepDefinition
+{
+    /// <summary>
+    /// Step index where actions should run. Step 0 runs before the first simulation step.
+    /// </summary>
+    public required int Step { get; init; }
+
+    /// <summary>
+    /// Actions to execute at this step.
+    /// </summary>
+    public required List<TestActionDefinition> Actions { get; init; }
+}
+
+/// <summary>
+/// Defines a single action to execute during a test run.
+/// Only spawn actions are supported for now.
+/// </summary>
+public class TestActionDefinition
+{
+    /// <summary>
+    /// Action type, e.g. "spawn".
+    /// </summary>
+    public required string Type { get; init; }
+
+    /// <summary>
+    /// Entity definition used by this action.
+    /// </summary>
+    public required EntityDefinition Entity { get; init; }
+
+    /// <summary>
+    /// Optional property overrides to apply when spawning this entity.
+    /// These override the properties defined in the entity definition.
+    /// </summary>
+    public Dictionary<string, object>? PropertyOverrides { get; init; }
 }

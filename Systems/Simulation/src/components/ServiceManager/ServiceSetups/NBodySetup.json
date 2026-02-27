@@ -2,12 +2,12 @@
   "name": "N-Body Gravity and Position Simulation",
   "description": "Simulation with parallel force composition: N-body gravity runs in parallel, PhysicsIntegrator sums forces",
   "timeStep": {
-    "value": 50,
+    "value": 10,
     "unit": "ms"
   },
   "parallel": true,
-  "stepDelayMs": 50,
-  "simulationSteps": 200,
+  "stepDelayMs": 10,
+  "simulationSteps": 500,
 
   "simulationModels": [
     {
@@ -32,7 +32,7 @@
     },
     {
       "name": "PhysicsIntegrator",
-      "inputProperties": ["Mass", "CurrentSpeed"],
+      "inputProperties": ["Mass", "CurrentSpeed", "Displacement"],
       "optionalInputProperties": ["GravityForce", "DragForce", "MagnetismForce", "WindForce"],
       "outputProperties": ["CurrentSpeed", "Displacement"]
     },

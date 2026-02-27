@@ -138,6 +138,12 @@ public class SimEngine
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"ERROR in ExecuteServiceBatchAsync: {ex.Message}");
+            Console.WriteLine($"Inner Exception: {ex.InnerException?.Message}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"Stack Trace: {ex.InnerException.StackTrace}");
+            }
             throw new InvalidOperationException("Service batch execution failed", ex);
         }
     }

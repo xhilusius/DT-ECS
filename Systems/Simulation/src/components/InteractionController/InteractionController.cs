@@ -246,6 +246,26 @@ public class InteractionController : IInteractionController
     }
 
     /// <summary>
+    /// Removes an entity completely from the simulation.
+    /// Coordinates through EntityManager for all entity management and state cleanup.
+    /// Frees the entity name for reuse by subsequent entities.
+    /// </summary>
+    /// <param name="entityId">The entity to remove</param>
+    public async Task RemoveEntityAsync(int entityId)
+    {
+        try
+        {
+            await _entityManager.RemoveEntityWithStateAsync(entityId);
+            Console.WriteLine($"Entity {entityId} has been removed from the simulation");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error removing entity: {ex.Message}");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Gets the list of all existing entities and their compositions.
     /// </summary>
     public void ListAllEntities()

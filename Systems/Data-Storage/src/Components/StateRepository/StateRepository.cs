@@ -229,6 +229,29 @@ public class StateRepository
         }
     }
 
+    /// <summary>
+    /// Removes a property value at a specific index for a property type.
+    /// This shifts all subsequent values down by one index.
+    /// Returns true if successful, false if index is out of range.
+    /// </summary>
+    public bool RemovePropertyAtIndex(string propertyType, int index)
+    {
+        if (string.IsNullOrWhiteSpace(propertyType))
+            throw new ArgumentException("Property type cannot be null or empty", nameof(propertyType));
+
+        lock (_lockObject)
+        {
+            if (!_propertiesByType.TryGetValue(propertyType, out var properties))
+                return false; // Property type doesn't exist
+
+            if (index < 0 || index >= properties.Count)
+                return false; // Index out of range
+
+            properties.RemoveAt(index);
+            return true;
+        }
+    }
+
     #endregion
 }
 

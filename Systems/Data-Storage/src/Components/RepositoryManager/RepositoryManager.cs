@@ -350,6 +350,95 @@ public class RepositoryManager : IRepositoryManager
         return await Task.FromResult(_archetypeManager);
     }
 
+    /// <summary>
+    /// Removes all property values for an entity across all property types.
+    /// Removes the entity from the property arrays and updates EntityMapper.
+    /// </summary>
+    /// <param name="entityId">The entity to remove completely</param>
+    public async Task RemoveEntityAsync(int entityId)
+    {
+        await Task.Run(() =>
+        {
+            // Get the entity's property composition from EntityMapper
+            var properties = _entityManager.GetEntityComposition(entityId);
+            
+            if (properties == null || properties.Count == 0)
+            {
+                // Entity doesn't exist or has no properties - just remove from tracking
+                _entityManager.RemoveEntity(entityId);
+                return;
+            }
+
+            // Track which indices were removed for index remapping
+            var removedIndices = new Dictionary<string, int>();
+
+            // Remove the entity's values from each property array
+            // Process in reverse order to collect removal information
+            foreach (var propertyType in properties)
+            {
+                // Get the index of this entity in this property array
+                int index = _entityManager.GetEntityIndexInProperty(entityId, propertyType);
+                
+                if (index >= 0)
+                {
+                    // Track the removed index for this property
+                    removedIndices[propertyType] = index;
+                    
+                    // Remove at this index - this shifts subsequent indices down
+                    _stateRepository.RemovePropertyAtIndex(propertyType, index);
+                }
+            }
+
+            // Remove entity from EntityMapper tracking, passing removed indices for remapping
+            _entityManager.RemoveEntity(entityId, removedIndices);
+        });
+    }
+
+    /// <summary>
+    /// Removes a property value at a specific index for a property type.
+    /// Used when removing an entity's individual properties.
+    /// </summary>
+    /// <param name="propertyType">The property type to remove from</param>
+    /// <param name="entityId">The entity whose property is being removed</param>
+    public async Task RemovePropertyAsync(string propertyType, int entityId)
+    {
+        if (string.IsNullOrWhiteSpace(propertyType))
+            throw new ArgumentException("Property type cannot be null or empty", nameof(propertyType));
+
+        await Task.Run(() =>
+        {
+            // Get the index of this entity in this property array
+            int index = _entityManager.GetEntityIndexInProperty(entityId, propertyType);
+            
+            if (index >= 0)
+            {
+                // Remove at this index
+                _stateRepository.RemovePropertyAtIndex(propertyType, index);
+                
+                // Update EntityMapper to remove this property from the entity
+                // Note: RemovePropertyFromEntity will shift indices in EntityMapper
+            }
+        });
+    }
+
+    /// <summary>
+    /// Gets the property indices for a specific entity.
+    /// Returns dictionary mapping property types to their indices in property arrays.
+    /// </summary>
+    public Dictionary<string, int> GetEntityPropertyIndices(int entityId)
+    {
+        return _entityManager.GetEntityPropertyIndices(entityId);
+    }
+
+    /// <summary>
+    /// Gets the index of an entity in a specific property's array.
+    /// Returns -1 if entity doesn't have this property.
+    /// </summary>
+    public int GetEntityIndexInProperty(int entityId, string propertyType)
+    {
+        return _entityManager.GetEntityIndexInProperty(entityId, propertyType);
+    }
+
     #endregion
 }
 

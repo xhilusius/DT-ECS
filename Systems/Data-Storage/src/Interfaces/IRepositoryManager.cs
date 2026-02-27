@@ -24,6 +24,12 @@ public interface IRepositoryManager
     Task<int> AddPropertyAsync(string propertyType, object propertyValue);
 
     /// <summary>
+    /// Removes a property from an entity in the repository.
+    /// Used when an entity is being removed from the simulation.
+    /// </summary>
+    Task RemovePropertyAsync(string propertyType, int entityId);
+
+    /// <summary>
     /// Replaces the entire list of properties for a property type.
     /// </summary>
     Task SetPropertiesForTypeAsync(string propertyType, List<object> propertyValues);
@@ -146,6 +152,24 @@ public interface IRepositoryManager
     /// Updates the Data-Storage EntityMapper with the new property and its index.
     /// </summary>
     void SyncPropertyAddition(int entityId, string propertyType, int index);
+
+    /// <summary>
+    /// Removes an entity completely from the repository.
+    /// Removes all property values for the entity and updates EntityMapper.
+    /// </summary>
+    Task RemoveEntityAsync(int entityId);
+
+    /// <summary>
+    /// Gets the property indices for a specific entity.
+    /// Returns dictionary mapping property types to their indices in property arrays.
+    /// </summary>
+    Dictionary<string, int> GetEntityPropertyIndices(int entityId);
+
+    /// <summary>
+    /// Gets the index of an entity in a specific property's array.
+    /// Returns -1 if entity doesn't have this property.
+    /// </summary>
+    int GetEntityIndexInProperty(int entityId, string propertyType);
 
     #endregion
 }

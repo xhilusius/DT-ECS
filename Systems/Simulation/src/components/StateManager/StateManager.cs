@@ -182,7 +182,7 @@ public class StateManager
             }
 
             // Query EntityManager to find entities that have ALL required properties
-            // Use EntityManager's stored index mappings for fast lookups
+            // Use RepositoryManager for authoritative index lookups
             var validEntityIds = new List<int>();
             var entityToPropertyIndices = new Dictionary<int, Dictionary<string, int>>();
             var allEntityIds = _entityManager.GetAllEntityIds();
@@ -196,14 +196,12 @@ public class StateManager
                 {
                     validEntityIds.Add(entityId);
                     
-                    // Get the pre-computed index mapping from EntityManager
-                    var allIndices = _entityManager.GetEntityPropertyIndices(entityId);
-                    
-                    // Filter to only the properties being queried
+                    // Get indices from RepositoryManager (delegates to Data-Storage EntityMapper)
                     var indices = new Dictionary<string, int>();
                     foreach (var propertyType in propertyTypesList)
                     {
-                        if (allIndices.TryGetValue(propertyType, out var index))
+                        int index = _repositoryManager.GetEntityIndexInProperty(entityId, propertyType);
+                        if (index >= 0)
                         {
                             indices[propertyType] = index;
                         }
@@ -371,8 +369,8 @@ public class StateManager
                                     ? propertyType
                                     : $"{propertyType} ({unit})";
 
-                                // Get the index of this entity in this specific property's array
-                                int entityIndex = _entityManager.GetEntityIndexInProperty(entityId, propertyType);
+                                // Get the index of this entity in this specific property's array via RepositoryManager
+                                int entityIndex = _repositoryManager.GetEntityIndexInProperty(entityId, propertyType);
                                 
                                 if (entityIndex >= 0 && entityIndex < allProperties[propertyType].Count)
                                 {
@@ -615,7 +613,7 @@ public class StateManager
         // Check if entity should be visualized (default: true)
         if (allProperties.ContainsKey("Visualize"))
         {
-            int visualizeIndex = _entityManager.GetEntityIndexInProperty(entityId, "Visualize");
+            int visualizeIndex = _repositoryManager.GetEntityIndexInProperty(entityId, "Visualize");
             if (visualizeIndex >= 0 && visualizeIndex < allProperties["Visualize"].Count)
             {
                 var visualizeValue = allProperties["Visualize"][visualizeIndex];
@@ -636,7 +634,7 @@ public class StateManager
         
         if (allProperties.ContainsKey("Position"))
         {
-            int posIndex = _entityManager.GetEntityIndexInProperty(entityId, "Position");
+            int posIndex = _repositoryManager.GetEntityIndexInProperty(entityId, "Position");
             if (posIndex >= 0 && posIndex < allProperties["Position"].Count)
             {
                 var posValue = allProperties["Position"][posIndex];
@@ -663,7 +661,7 @@ public class StateManager
         float? radius = null;
         if (allProperties.ContainsKey("Radius"))
         {
-            int radiusIndex = _entityManager.GetEntityIndexInProperty(entityId, "Radius");
+            int radiusIndex = _repositoryManager.GetEntityIndexInProperty(entityId, "Radius");
             if (radiusIndex >= 0 && radiusIndex < allProperties["Radius"].Count)
             {
                 var radiusValue = allProperties["Radius"][radiusIndex];
@@ -678,7 +676,7 @@ public class StateManager
         System.Drawing.Color? color = null;
         if (allProperties.ContainsKey("Color"))
         {
-            int colorIndex = _entityManager.GetEntityIndexInProperty(entityId, "Color");
+            int colorIndex = _repositoryManager.GetEntityIndexInProperty(entityId, "Color");
             if (colorIndex >= 0 && colorIndex < allProperties["Color"].Count)
             {
                 var colorValue = allProperties["Color"][colorIndex];
@@ -693,4 +691,83 @@ public class StateManager
     }
 
     #endregion
+
+    /// <summary>
+    /// Removes a property of a specific type for a given entity asynchronously.
+    /// </summary>
+    /// <param name="propertyType">The type of property to remove (must not be null or empty)</param>
+    /// <param name="entityId">The ID of the entity</param>
+    /// <exception cref="ArgumentException">Thrown if propertyType is null or empty</exception>
+    /// <exception cref="InvalidOperationException">Thrown if an error occurs during removal</exception>
+    public async Task RemovePropertyAsync(string propertyType, int entityId)
+    {
+        if (string.IsNullOrEmpty(propertyType))
+        {
+            throw new ArgumentException("Property type cannot be null or empty", nameof(propertyType));
+        }
+
+        try
+        {
+            await _repositoryManager.RemovePropertyAsync(propertyType, entityId);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to remove property '{propertyType}' for entity {entityId}", ex);
+        }
+    }
+
+    /// <summary>
+    /// Removes an entity completely from the state system, coordinating with RepositoryManager.
+    /// This ensures all index remapping is handled correctly across property arrays.
+    /// </summary>
+    /// <param name="entityId">The entity ID to remove</param>
+    public async Task RemoveEntityAsync(int entityId)
+    {
+        try
+        {
+            // Delegate to RepositoryManager, which handles all property removal and index remapping
+            await _repositoryManager.RemoveEntityAsync(entityId);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to remove entity {entityId} from state system", ex);
+        }
+    }
+
+    /// <summary>
+    /// Notifies the StateManager that an entity has been removed.
+    /// </summary>
+    /// <param name="entityId">The ID of the entity that was removed</param>
+    public void NotifyEntityRemovedAsync(int entityId)
+    {
+        Console.WriteLine($"Entity {entityId} removal notified to StateManager");
+    }
+
+    /// <summary>
+    /// Notifies the visualization system about multiple entities being removed asynchronously.
+    /// </summary>
+    /// <param name="entityIds">The collection of entity IDs that were removed</param>
+    public async Task NotifyEntitiesRemovedAsync(IEnumerable<int> entityIds)
+    {
+        if (_visualizationMapper == null)
+        {
+            return;
+        }
+
+        try
+        {
+            foreach (var entityId in entityIds)
+            {
+                var entity = _entityManager.GetEntity(entityId);
+                if (entity != null)
+                {
+                    await _visualizationMapper.RemoveEntityAsync(entity.Name);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Failed to notify visualization system of entity removal: {ex.Message}");
+        }
+    }
 }

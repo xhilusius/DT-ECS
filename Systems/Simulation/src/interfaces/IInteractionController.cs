@@ -78,6 +78,13 @@ public interface IInteractionController
     void RemovePropertyFromEntity(int entityId, string propertyType);
 
     /// <summary>
+    /// Removes an entity completely from the simulation.
+    /// Frees the entity name for reuse and notifies visualization system.
+    /// </summary>
+    /// <param name="entityId">The entity to remove</param>
+    Task RemoveEntityAsync(int entityId);
+
+    /// <summary>
     /// Lists all existing entities and their property compositions.
     /// </summary>
     void ListAllEntities();

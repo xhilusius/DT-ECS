@@ -1,0 +1,121 @@
+{
+  // Entity definitions organized by force composition only
+  // Mass, Radius, Position, and Color are specified in test cases as property overrides
+  "entities": {
+    // ===== CELESTIAL BODIES =====
+    "Earth": {
+      "name": "Earth",
+      "description": "Planet Earth - N-body gravity only",
+      "properties": {
+        "Mass": 5.97e24,
+        "Position": [0, 0, 0],
+        "Displacement": [0, 0, 0],
+        "CurrentSpeed": [0, 0, 0],
+        "Radius": 6.371e6,
+        "GravityForce": [0, 0, 0],
+        "Visualize": false,
+        "Color": "Blue"
+      }
+    },
+    "EarthSurface": {
+      "name": "EarthSurface",
+      "description": "The surface of the Earth, visual reference point",
+      "properties": {
+        "Position": [0, 6.371e6, 0],
+        "Visualize": true
+      }
+    },
+
+    // ===== BALLS: Force composition only =====
+    "Ball_GravityOnly": {
+      "name": "Ball",
+      "description": "Ball with gravity only",
+      "properties": {
+        "Mass": 1.0,
+        "Position": [0, 0, 0],
+        "Displacement": [0, 0, 0],
+        "CurrentSpeed": [0, 0, 0],
+        "Radius": 0.2,
+        "GravityForce": [0, 0, 0],
+        "Visualize": true,
+        "Color": "Red"
+      }
+    },
+    "Ball_GravityDrag": {
+      "name": "Ball",
+      "description": "Ball with gravity and drag",
+      "properties": {
+        "Mass": 1.0,
+        "Position": [0, 0, 0],
+        "Displacement": [0, 0, 0],
+        "CurrentSpeed": [0, 0, 0],
+        "Radius": 0.2,
+        "GravityForce": [0, 0, 0],
+        "DragForce": [0, 0, 0],
+        "Visualize": true,
+        "Color": "Cyan"
+      }
+    },
+    "Ball_GravityDragMagnetism": {
+      "name": "Ball",
+      "description": "Ball with gravity, drag, and magnetism",
+      "properties": {
+        "Mass": 1.0,
+        "Position": [0, 0, 0],
+        "Displacement": [0, 0, 0],
+        "CurrentSpeed": [0, 0, 0],
+        "Radius": 0.2,
+        "GravityForce": [0, 0, 0],
+        "DragForce": [0, 0, 0],
+        "MagnetismForce": [0, 0, 0],
+        "Visualize": true,
+        "Color": "Silver"
+      }
+    },
+    "Ball_GravityDragWind": {
+      "name": "Ball",
+      "description": "Ball with gravity, drag, and wind",
+      "properties": {
+        "Mass": 1.0,
+        "Position": [0, 0, 0],
+        "Displacement": [0, 0, 0],
+        "CurrentSpeed": [0, 0, 0],
+        "Radius": 0.2,
+        "GravityForce": [0, 0, 0],
+        "DragForce": [0, 0, 0],
+        "WindForce": [0, 0, 0],
+        "Visualize": true,
+        "Color": "DeepSkyBlue"
+      }
+    },
+    "Ball_GravityDragMagnetismWind": {
+      "name": "Ball",
+      "description": "Ball with gravity, drag, magnetism, and wind",
+      "properties": {
+        "Mass": 1.0,
+        "Position": [0, 0, 0],
+        "Displacement": [0, 0, 0],
+        "CurrentSpeed": [0, 0, 0],
+        "Radius": 0.2,
+        "GravityForce": [0, 0, 0],
+        "DragForce": [0, 0, 0],
+        "MagnetismForce": [0, 0, 0],
+        "WindForce": [0, 0, 0],
+        "Visualize": true,
+        "Color": "Lime"
+      }
+    },
+    "Ball_NoMass": {
+      "name": "Ball",
+      "description": "Ball with no mass (physics disabled)",
+      "properties": {
+        "Position": [0, 0, 0],
+        "Displacement": [0, 0, 0],
+        "CurrentSpeed": [0, 0, 0],
+        "Radius": 0.2,
+        "Visualize": true,
+        "Color": "Magenta"
+      }
+    }
+  }
+}

@@ -630,5 +630,88 @@ public class EntityMapper
         }
     }
 
+    /// <summary>
+    /// Removes an entity from the EntityMapper tracking.
+    /// Cleans up all mappings for the removed entity.
+    /// </summary>
+    /// <param name="entityId">The entity to remove</param>
+    /// <summary>
+    /// Removes an entity and updates indices for all remaining entities.
+    /// This is called after StateRepository has already removed the values and shifted indices.
+    /// </summary>
+    public void RemoveEntity(int entityId, Dictionary<string, int>? removedIndices = null)
+    {
+        try
+        {
+            // Get the entity's properties before removing them
+            var properties = _entityComposition.TryGetValue(entityId, out var props) ? props : new HashSet<string>();
+
+            // Update indices for all remaining entities BEFORE removing the entity
+            // When an entity is removed from an array at index i, all entities with index > i need to decrement by 1
+            if (removedIndices != null && removedIndices.Count > 0)
+            {
+                foreach (var entityEntry in _entityPropertyIndices.Where(kvp => kvp.Key != entityId).ToList())
+                {
+                    var otherEntityId = entityEntry.Key;
+                    var otherIndices = entityEntry.Value;
+
+                    foreach (var propertyType in removedIndices.Keys)
+                    {
+                        int removedIndex = removedIndices[propertyType];
+
+                        // If this entity has this property and its index is > removed index, decrement it
+                        if (otherIndices.TryGetValue(propertyType, out int currentIndex))
+                        {
+                            // If current index > removed index, it shifted down by 1
+                            if (currentIndex > removedIndex)
+                            {
+                                otherIndices[propertyType] = currentIndex - 1;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Remove from metadata
+            _entityMetadata.Remove(entityId);
+
+            // Remove from composition tracking
+            if (_entityComposition.TryGetValue(entityId, out var compositionProperties))
+            {
+                // Remove entity from each property's list
+                foreach (var propertyType in compositionProperties)
+                {
+                    if (_propertyToEntityList.TryGetValue(propertyType, out var entityList))
+                    {
+                        entityList.Remove(entityId);
+                        
+                        // If no entities have this property, remove the property entry
+                        if (entityList.Count == 0)
+                        {
+                            _propertyToEntityList.Remove(propertyType);
+                        }
+                    }
+                }
+
+                _entityComposition.Remove(entityId);
+            }
+
+            // Remove property indices mapping
+            _entityPropertyIndices.Remove(entityId);
+
+            // Remove from archetype indices
+            foreach (var archetypeIndices in _archetypeEntityIndices.Values)
+            {
+                archetypeIndices.Remove(entityId);
+            }
+
+            _compositionVersion++;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to remove entity {entityId}", ex);
+        }
+    }
+
     #endregion
 }

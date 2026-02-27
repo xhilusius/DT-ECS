@@ -36,7 +36,7 @@ public static class SimulationInitializer
 
         Console.WriteLine($"📄 Test: {testSetup.Description}");
         Console.WriteLine($"⚙️  Configuration: {effectiveConfigFile}");
-        Console.WriteLine($"🎯 Entities to create: {testSetup.Entities.Count}\n");
+        Console.WriteLine("🎯 Entities to create: via step actions\n");
 
         // ===== STEP 1: Initialize the dependency hierarchy =====
         Console.WriteLine("[1/6] Initializing Data Storage Layer...");
@@ -69,26 +69,6 @@ public static class SimulationInitializer
         var interactionController = new global::Simulation.InteractionController.InteractionController(serviceManager, entityManager);
 
         Console.WriteLine("✓ Component hierarchy initialized.\n");
-
-        // ===== STEP 2: Create entities from test setup =====
-        Console.WriteLine("╔═════════════════════════════════════════════════════════════╗");
-        Console.WriteLine("║                  CREATING TEST ENTITIES                     ║");
-        Console.WriteLine("╚═════════════════════════════════════════════════════════════╝\n");
-
-        foreach (var entityDef in testSetup.Entities)
-        {
-            Console.WriteLine($"Creating entity: {entityDef.Name}");
-            await interactionController.CreateEntityAsync(
-                entityDef.Name,
-                entityDef.Properties,
-                entityDef.Description
-            );
-        }
-
-        Console.WriteLine($"\n✓ Created {testSetup.Entities.Count} entities successfully.\n");
-
-        // Display initial state
-        await stateManager.ReportStateAsync("Initial State");
 
         return interactionController;
     }

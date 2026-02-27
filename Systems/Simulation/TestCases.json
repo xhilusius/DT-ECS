@@ -93,11 +93,10 @@
       "entities": [
         {
           "name": "Complete entity",
-          "description": "Has all properties: Mass, Position, CurrentSpeed, Radius, Displacement",
+          "description": "Has all properties: Mass, Position, CurrentSpeed, Radius (Displacement created by service)",
           "properties": {
             "Mass": 1.0,
             "Position": [-1, 50, 0],
-            "Displacement": [0, 0, 0],
             "CurrentSpeed": [0, 0, 0],
             "Radius": 0.2,
             "GravityForce": [0, 0, 0],
@@ -111,7 +110,6 @@
           "description": "Missing Mass property - will have no behavior",
           "properties": {
             "Position": [1, 50, 0],
-            "Displacement": [0, 0, 0],
             "CurrentSpeed": [0, 0, 0],
             "Radius": 0.2,
             "Visualize": true,

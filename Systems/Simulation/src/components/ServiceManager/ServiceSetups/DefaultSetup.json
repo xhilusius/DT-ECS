@@ -32,7 +32,7 @@
     },
     {
       "name": "PhysicsIntegrator",
-      "inputProperties": ["Mass", "CurrentSpeed"],
+      "inputProperties": ["Mass", "CurrentSpeed", "Displacement"],
       "optionalInputProperties": ["GravityForce", "DragForce", "MagnetismForce", "WindForce"],
       "outputProperties": ["CurrentSpeed", "Displacement"]
     },

@@ -33,8 +33,35 @@ public static class TestCases
         [JsonPropertyName("headerLines")]
         public required List<string> HeaderLines { get; init; }
 
+        [JsonPropertyName("steps")]
+        public required List<StepConfig> Steps { get; init; }
+    }
+
+    private record StepConfig
+    {
+        [JsonPropertyName("step")]
+        public required int Step { get; init; }
+
+        [JsonPropertyName("actions")]
+        public required List<ActionConfig> Actions { get; init; }
+    }
+
+    private record ActionConfig
+    {
+        [JsonPropertyName("type")]
+        public required string Type { get; init; }
+
+        [JsonPropertyName("entity")]
+        public required string Entity { get; init; }
+
+        [JsonPropertyName("properties")]
+        public Dictionary<string, JsonElement>? Properties { get; init; }
+    }
+
+    private record EntityLibraryFile
+    {
         [JsonPropertyName("entities")]
-        public required List<EntityConfig> Entities { get; init; }
+        public required Dictionary<string, EntityConfig> Entities { get; init; }
     }
 
     private record EntityConfig
@@ -58,7 +85,7 @@ public static class TestCases
         Console.WriteLine("Available test cases:");
         for (int i = 0; i < All.Count; i++)
         {
-            Console.WriteLine($"  [{i}] {All[i].Name}");
+            Console.WriteLine($"  [{i + 1}] {All[i].Name}");
         }
     }
 
@@ -83,28 +110,43 @@ public static class TestCases
     private static IReadOnlyList<TestCase> LoadAll()
     {
         var configFile = LoadConfigFile();
-        return configFile.TestCases.Select(BuildTestCase).ToList();
+        var entityLibrary = LoadEntityDefinitions();
+        return configFile.TestCases.Select(test => BuildTestCase(test, entityLibrary)).ToList();
     }
 
-    private static TestCase BuildTestCase(TestCaseConfig config)
+    private static TestCase BuildTestCase(TestCaseConfig config, IReadOnlyDictionary<string, EntityDefinition> entityLibrary)
     {
         var setup = new TestSetup
         {
             ConfigurationFile = config.ConfigurationFile,
             Description = config.Description,
-            Entities = config.Entities.Select(BuildEntityDefinition).ToList()
+            Steps = config.Steps.Select(step => BuildStepDefinition(step, entityLibrary)).ToList()
         };
 
-        return new TestCase(config.Name, setup, CreateExecutionLogic(config));
+        return new TestCase(config.Name, setup, CreateExecutionLogic(setup, config.HeaderLines));
     }
 
-    private static EntityDefinition BuildEntityDefinition(EntityConfig config)
+    private static TestStepDefinition BuildStepDefinition(StepConfig stepConfig, IReadOnlyDictionary<string, EntityDefinition> entityLibrary)
     {
-        return new EntityDefinition
+        return new TestStepDefinition
         {
-            Name = config.Name,
-            Description = config.Description,
-            Properties = BuildProperties(config.Properties)
+            Step = stepConfig.Step,
+            Actions = stepConfig.Actions.Select(action => BuildActionDefinition(action, entityLibrary)).ToList()
+        };
+    }
+
+    private static TestActionDefinition BuildActionDefinition(ActionConfig actionConfig, IReadOnlyDictionary<string, EntityDefinition> entityLibrary)
+    {
+        if (!entityLibrary.TryGetValue(actionConfig.Entity, out var entityDefinition))
+            throw new JsonException($"Unknown entity reference: {actionConfig.Entity}");
+
+        var propertyOverrides = actionConfig.Properties != null ? BuildProperties(actionConfig.Properties) : null;
+
+        return new TestActionDefinition
+        {
+            Type = actionConfig.Type,
+            Entity = entityDefinition,
+            PropertyOverrides = propertyOverrides
         };
     }
 
@@ -118,6 +160,39 @@ public static class TestCases
             {
                 result[propertyName] = parsed;
             }
+        }
+
+        return result;
+    }
+
+    private static IReadOnlyDictionary<string, EntityDefinition> LoadEntityDefinitions()
+    {
+        string entitiesPath = GetEntitiesPath();
+
+        if (!File.Exists(entitiesPath))
+            throw new FileNotFoundException($"Entity library file not found: {entitiesPath}");
+
+        string jsonContent = File.ReadAllText(entitiesPath);
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            AllowTrailingCommas = true,
+            ReadCommentHandling = JsonCommentHandling.Skip
+        };
+
+        var libraryFile = JsonSerializer.Deserialize<EntityLibraryFile>(jsonContent, options);
+        if (libraryFile == null)
+            throw new JsonException("Entity library deserialization resulted in null");
+
+        var result = new Dictionary<string, EntityDefinition>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, entityConfig) in libraryFile.Entities)
+        {
+            result[key] = new EntityDefinition
+            {
+                Name = entityConfig.Name,
+                Description = entityConfig.Description,
+                Properties = BuildProperties(entityConfig.Properties)
+            };
         }
 
         return result;
@@ -198,19 +273,32 @@ public static class TestCases
         return color;
     }
 
-    private static Func<IInteractionController, StateManager, Task> CreateExecutionLogic(TestCaseConfig config)
+    private static Func<IInteractionController, StateManager, Task> CreateExecutionLogic(TestSetup setup, IReadOnlyList<string> headerLines)
     {
         return async (controller, stateManager) =>
         {
-            PrintBanner(config.HeaderLines);
+            PrintBanner(headerLines);
 
             try
             {
-                var setupConfig = ServiceSetupLoader.LoadConfiguration(config.ConfigurationFile);
+                var setupConfig = ServiceSetupLoader.LoadConfiguration(setup.ConfigurationFile);
                 int simulationSteps = setupConfig.SimulationSteps;
+
+                var stepsByIndex = setup.Steps.ToDictionary(step => step.Step, step => step.Actions);
+
+                if (stepsByIndex.TryGetValue(0, out var initialActions))
+                {
+                    await ExecuteStepActionsAsync(controller, initialActions);
+                    await stateManager.ReportStateAsync("Initial State");
+                }
 
                 for (int step = 1; step <= simulationSteps; step++)
                 {
+                    if (stepsByIndex.TryGetValue(step, out var stepActions))
+                    {
+                        await ExecuteStepActionsAsync(controller, stepActions);
+                    }
+
                     await controller.OneStepAsync();
                 }
 
@@ -224,6 +312,52 @@ public static class TestCases
                 Console.WriteLine($"Stack Trace: {ex.StackTrace}");
             }
         };
+    }
+
+    private static async Task ExecuteStepActionsAsync(IInteractionController controller, IReadOnlyList<TestActionDefinition> actions)
+    {
+        foreach (var action in actions)
+        {
+            if (string.Equals(action.Type, "spawn", StringComparison.OrdinalIgnoreCase))
+            {
+                var entityDefinition = action.Entity;
+                var properties = new Dictionary<string, object>(entityDefinition.Properties);
+
+                // Apply property overrides from the action
+                if (action.PropertyOverrides != null)
+                {
+                    foreach (var (key, value) in action.PropertyOverrides)
+                    {
+                        properties[key] = value;
+                    }
+                }
+
+                await controller.CreateEntityAsync(entityDefinition.Name, properties, entityDefinition.Description);
+            }
+            else if (string.Equals(action.Type, "remove", StringComparison.OrdinalIgnoreCase))
+            {
+                // Remove action expects the entity ID to be specified via property override
+                if (action.PropertyOverrides != null && action.PropertyOverrides.TryGetValue("EntityId", out var entityIdObj))
+                {
+                    if (int.TryParse(entityIdObj.ToString(), out int entityId))
+                    {
+                        await controller.RemoveEntityAsync(entityId);
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Warning: Invalid EntityId in remove action - skipping.");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Warning: Remove action missing EntityId property - skipping.");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Warning: Unsupported action type '{action.Type}' - skipping.");
+            }
+        }
     }
 
     private static void PrintBanner(IReadOnlyList<string> lines)
@@ -276,9 +410,28 @@ public static class TestCases
         string configPath = Path.Combine(
             assemblyFolder,
             "..", "..", "..",
-            "TestCases.json"
+            "TestFiles",
+            "TestCases.jsonc"
         );
 
         return Path.GetFullPath(configPath);
+    }
+
+    private static string GetEntitiesPath()
+    {
+        var assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+        var assemblyFolder = Path.GetDirectoryName(assemblyPath);
+
+        if (string.IsNullOrEmpty(assemblyFolder))
+            throw new InvalidOperationException("Could not determine assembly folder");
+
+        string entitiesPath = Path.Combine(
+            assemblyFolder,
+            "..", "..", "..",
+            "TestFiles",
+            "Entities.jsonc"
+        );
+
+        return Path.GetFullPath(entitiesPath);
     }
 }
