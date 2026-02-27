@@ -552,9 +552,6 @@ public class StateManager
         {
             var allProperties = await _repositoryManager.GetAllPropertiesAsync();
             
-            // Find Earth's position and radius for surface-relative positioning (if Earth entity exists)
-            var (earthPosition, earthRadius) = FindEarthPositionAndRadius(allProperties);
-            
             var visualizationData = new List<EntityVisualizationData>();
 
             foreach (var entityId in entityIds)
@@ -566,7 +563,7 @@ public class StateManager
                 if (entity == null)
                     continue;
 
-                var vizData = ExtractEntityVisualizationData(entityId, entity, allProperties, earthPosition, earthRadius);
+                var vizData = ExtractEntityVisualizationData(entityId, entity, allProperties);
                 if (vizData.HasValue)
                 {
                     visualizationData.Add(vizData.Value);
@@ -601,9 +598,6 @@ public class StateManager
         {
             var allProperties = await _repositoryManager.GetAllPropertiesAsync();
             
-            // Find Earth's position and radius for surface-relative positioning (if Earth entity exists)
-            var (earthPosition, earthRadius) = FindEarthPositionAndRadius(allProperties);
-            
             var visualizationData = new List<EntityVisualizationData>();
 
             foreach (var entityId in _entityManager.GetAllEntityIds())
@@ -612,7 +606,7 @@ public class StateManager
                 if (entity == null)
                     continue;
 
-                var vizData = ExtractEntityVisualizationData(entityId, entity, allProperties, earthPosition, earthRadius);
+                var vizData = ExtractEntityVisualizationData(entityId, entity, allProperties);
                 if (vizData.HasValue)
                 {
                     visualizationData.Add(vizData.Value);
@@ -651,43 +645,6 @@ public class StateManager
     }
 
     /// <summary>
-    /// Find Earth entity's position and radius for relative positioning in visualization.
-    /// Returns (position, radius) if Earth exists, (null, 0) otherwise.
-    /// Earth entity is identified by entity metadata Name = "Earth".
-    /// </summary>
-    private (double[]? position, double radius) FindEarthPositionAndRadius(Dictionary<string, List<object>> allProperties)
-    {
-        if (!allProperties.ContainsKey("Position") || !allProperties.ContainsKey("Radius"))
-            return (null, 0);
-
-        // Search through all entities to find one named "Earth"
-        foreach (var entityId in _entityManager.GetAllEntityIds())
-        {
-            var entity = _entityManager.GetEntity(entityId);
-            if (entity != null && entity.Name.Equals("Earth", StringComparison.OrdinalIgnoreCase))
-            {
-                // Found Earth entity, get its position and radius
-                int posIndex = _entityManager.GetEntityIndexInProperty(entityId, "Position");
-                int radiusIndex = _entityManager.GetEntityIndexInProperty(entityId, "Radius");
-                
-                if (posIndex >= 0 && posIndex < allProperties["Position"].Count &&
-                    radiusIndex >= 0 && radiusIndex < allProperties["Radius"].Count)
-                {
-                    var posValue = allProperties["Position"][posIndex];
-                    var radiusValue = allProperties["Radius"][radiusIndex];
-                    
-                    if (posValue is double[] earthPos && earthPos.Length == 3 && radiusValue is float earthRadius)
-                    {
-                        return (earthPos, earthRadius);
-                    }
-                }
-            }
-        }
-
-        return (null, 0);
-    }
-
-    /// <summary>
     /// MVP: Extract visualization data from entity state.
     /// Collects Position, Radius, and Color for visualization.
     /// 
@@ -696,14 +653,9 @@ public class StateManager
     /// - Radius: OPTIONAL - uses entity's Radius property if available
     /// - Color: OPTIONAL - defaults to Blue if not provided
     /// 
-    /// If earthPosition is provided, calculates positions relative to Earth's center.
-    /// This allows float precision to be sufficient for visualization even with Earth-scale coordinates.
-    /// 
-    /// For Earth-scale visualization, converts from meters to kilometers to keep coordinates manageable.
-    /// 
     /// Returns null if entity lacks required Position property.
     /// </summary>
-    private EntityVisualizationData? ExtractEntityVisualizationData(int entityId, Entity entity, Dictionary<string, List<object>> allProperties, double[]? earthPosition, double earthRadius)
+    private EntityVisualizationData? ExtractEntityVisualizationData(int entityId, Entity entity, Dictionary<string, List<object>> allProperties)
     {
         // Check if entity should be visualized (default: true)
         if (allProperties.ContainsKey("Visualize"))
@@ -733,31 +685,8 @@ public class StateManager
                 var posValue = allProperties["Position"][posIndex];
                 if (posValue is double[] posArray && posArray.Length == 3)
                 {
-                    // Calculate relative position
-                    if (earthPosition != null && earthRadius > 0)
-                    {
-                        // Position relative to Earth's center
-                        double relX = posArray[0] - earthPosition[0];
-                        double relY = posArray[1] - earthPosition[1];
-                        double relZ = posArray[2] - earthPosition[2];
-                        
-                        // For Y only: calculate height above Earth's surface
-                        // Distance from center = sqrt(relX² + relY² + relZ²)
-                        double distanceFromCenter = Math.Sqrt(relX * relX + relY * relY + relZ * relZ);
-                        double heightAboveSurface = distanceFromCenter - earthRadius;
-                        
-                        // Keep X and Z as relative-to-center, only adjust Y to height-above-surface
-                        position = new Vector3(
-                            (float)relX,
-                            (float)heightAboveSurface,
-                            (float)relZ
-                        );
-                    }
-                    else
-                    {
-                        // Absolute position (no Earth reference)
-                        position = new Vector3((float)posArray[0], (float)posArray[1], (float)posArray[2]);
-                    }
+                    // Use absolute position
+                    position = new Vector3((float)posArray[0], (float)posArray[1], (float)posArray[2]);
                 }
                 else
                 {
