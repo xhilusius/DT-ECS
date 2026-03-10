@@ -1,0 +1,30 @@
+{
+  "propertyUnits": {
+    "Mass": "kg",
+    "Position": "km",
+    "Displacement": "km",
+    "CurrentSpeed": "km/s",
+    "Radius": "km",
+    "GravityForce": "kN",
+    "DragForce": "N",
+    "MagnetismForce": "N",
+    "WindForce": "N"
+  },
+  "propertyVisibility": {
+    "alwaysShow": [
+      "Position",
+      "CurrentSpeed",
+      "GravityForce",
+      "DragForce",
+      "MagnetismForce",
+      "WindForce"
+    ],
+    "showOnce": [
+      "Mass",
+      "Radius"
+    ],
+    "intermediate": [
+      "Displacement"
+    ]
+  }
+}

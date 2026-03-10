@@ -21,36 +21,36 @@ while (continueRunning)
         {
             var selectedTest = TestCases.All[zeroBasedIndex];
 
-            // Step 2: Discover and display available configuration files
-            var setupsPath = Path.Combine(AppContext.BaseDirectory, "src", "components", "ServiceManager", "ServiceSetups");
-            var configFiles = Directory.GetFiles(setupsPath, "*Setup.json")
-                .Select(Path.GetFileName)
+            // Step 2: Discover and display available configuration files from TestFiles folder
+            var testFilesPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "TestFiles");
+            var setupFolders = Directory.GetDirectories(testFilesPath)
+                .Select(f => Path.GetFileName(f))
                 .Where(f => f != null)
                 .Cast<string>()
                 .OrderBy(f => f)
                 .ToList();
 
             Console.WriteLine("\n╔═════════════════════════════════════════════════════════════╗");
-            Console.WriteLine("║              SELECT CONFIGURATION FILE                      ║");
+            Console.WriteLine("║              SELECT CONFIGURATION SETUP                      ║");
             Console.WriteLine("╚═════════════════════════════════════════════════════════════╝\n");
             
-            for (int i = 0; i < configFiles.Count; i++)
+            for (int i = 0; i < setupFolders.Count; i++)
             {
-                var isDefault = configFiles[i] == selectedTest.Setup.ConfigurationFile;
+                var isDefault = setupFolders[i] == selectedTest.Setup.ConfigurationFile;
                 var marker = isDefault ? " (default from test case)" : "";
-                Console.WriteLine($"  [{i}] {configFiles[i]}{marker}");
+                Console.WriteLine($"  [{i}] {setupFolders[i]}{marker}");
             }
             
-            Console.Write($"\nSelect configuration file (0-{configFiles.Count - 1}, or press Enter for default): ");
+            Console.Write($"\nSelect configuration setup (0-{setupFolders.Count - 1}, or press Enter for default): ");
             var configInput = Console.ReadLine();
             
             string selectedConfigFile = selectedTest.Setup.ConfigurationFile;
             
             if (!string.IsNullOrWhiteSpace(configInput) && int.TryParse(configInput, out var configIndex))
             {
-                if (configIndex >= 0 && configIndex < configFiles.Count)
+                if (configIndex >= 0 && configIndex < setupFolders.Count)
                 {
-                    selectedConfigFile = configFiles[configIndex];
+                    selectedConfigFile = setupFolders[configIndex];
                 }
                 else
                 {

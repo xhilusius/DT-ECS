@@ -1,0 +1,35 @@
+{
+  "name": "Orbital Mechanics Simulation",
+  "description": "N-body gravitational simulation for celestial mechanics (Moon-Earth-Sun system) - no atmospheric effects",
+  "timeStep": {
+    "value": 3600,
+    "unit": "s"
+  },
+  "parallel": false,
+  "stepDelayMs": 5,
+  "simulationSteps": 3000,
+
+  "simulationModels": [
+    {
+      "name": "NBodyGravityModel",
+      "inputProperties": ["Mass", "Position", "GravityForce"],
+      "outputProperties": ["GravityForce"]
+    },
+    {
+      "name": "PhysicsIntegrator",
+      "inputProperties": ["Mass", "CurrentSpeed", "Displacement"],
+      "optionalInputProperties": ["GravityForce"],
+      "outputProperties": ["CurrentSpeed", "Displacement"]
+    },
+    {
+      "name": "PositionModel",
+      "inputProperties": ["Position", "Displacement"],
+      "outputProperties": ["Position", "Displacement"]
+    }
+  ],
+  "executionBatches": [
+    ["NBodyGravityModel"],
+    ["PhysicsIntegrator"],
+    ["PositionModel"]
+  ]
+}

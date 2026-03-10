@@ -73,16 +73,16 @@ public class ServiceManager
     }
 
     /// <summary>
-    /// Asynchronously initializes services by loading configuration from a JSON file.
+    /// Asynchronously initializes services by loading configuration from a setup folder.
     /// Must be called after construction to set up services.
     /// </summary>
-    /// <param name="configurationFileName">Name of the configuration file in the ServiceSetups folder (e.g., "DefaultSetup.json")</param>
-    public async Task InitializeAsync(string configurationFileName)
+    /// <param name="setupName">Name of the setup folder in TestFiles (e.g., "DefaultSetup", "OrbitalSetup")</param>
+    public async Task InitializeAsync(string setupName)
     {
-        if (string.IsNullOrWhiteSpace(configurationFileName))
-            throw new ArgumentException("Configuration file name cannot be null or empty", nameof(configurationFileName));
+        if (string.IsNullOrWhiteSpace(setupName))
+            throw new ArgumentException("Setup name cannot be null or empty", nameof(setupName));
 
-        await InitializeServicesFromConfigurationAsync(configurationFileName);
+        await InitializeServicesFromConfigurationAsync(setupName);
     }
 
     /// <summary>
@@ -395,18 +395,19 @@ public class ServiceManager
     }
 
     /// <summary>
-    /// Initializes services from a configuration file.
+    /// Initializes services from a setup configuration folder.
     /// Loads the configuration, instantiates models, registers archetypes, and registers them with their batch assignments.
     /// </summary>
-    private async Task InitializeServicesFromConfigurationAsync(string configurationFileName)
+    private async Task InitializeServicesFromConfigurationAsync(string setupName)
     {
         try
         {
-            // Load the configuration
-            var config = ServiceSetupLoader.LoadConfiguration(configurationFileName);
+            // Load the setup configuration from TestFiles/{SetupName}/Setup.json
+            var config = ServiceSetupLoader.LoadConfiguration(setupName);
 
-            // Load properties configuration (units and visibility settings)
-            var propertiesConfig = ServiceSetupLoader.LoadPropertiesConfiguration();
+            // Load properties configuration (units and visibility settings) from TestFiles/{SetupName}/PropertiesConfig.json
+            var propertiesConfig = ServiceSetupLoader.LoadPropertiesConfiguration(setupName);
+            var entityPropertiesConfig = ServiceSetupLoader.LoadEntityPropertiesConfiguration();
 
             // Store the parallel execution setting and step delay
             _parallelExecution = config.Parallel;
@@ -416,7 +417,7 @@ public class ServiceManager
             var modelConfigMap = config.SimulationModels.ToDictionary(m => m.Name, m => m);
 
             var timeStepSeconds = ServiceSetupLoader.GetTimeStepSeconds(config.TimeStep);
-            _simEngine.GetStateManager().SetPropertiesConfiguration(propertiesConfig);
+            _simEngine.GetStateManager().SetPropertiesConfiguration(entityPropertiesConfig, propertiesConfig);
 
             var repositoryManager = _simEngine.GetStateManager().GetRepositoryManager();
 
@@ -472,6 +473,7 @@ public class ServiceManager
         }
     }
 }
+
 
 
 

@@ -12,19 +12,47 @@ using Simulation.StateManager;
 /// 
 /// Physics:
 /// - F = G * m1 * m2 / r^2, direction along the separation vector
-/// - Where: G = 6.67430e-11 m^3 kg^-1 s^-2
+/// - G and distance thresholds are scaled based on the position unit from PropertiesConfig
+/// - Default: G = 6.67430e-11 m^3 kg^-1 s^-2 (SI units for meters)
+/// - For km: G is scaled by 1e-6 to maintain correct force magnitudes
 /// 
-/// Each entity's net force is the sum of pairwise forces from all other entities.
+/// Each entity''s net force is the sum of pairwise forces from all other entities.
 /// Uses double precision for Position and Force calculations to handle Earth-scale simulations.
 /// </summary>
 public class NBodyGravityModel : ISimulationModel
 {
-    private const double GravitationalConstant = 6.67430e-11; // m^3 kg^-1 s^-2
-    private const double MinDistanceMeters = 0.001; // Softening threshold to avoid singularities
+    private const double GravitationalConstantSI = 6.67430e-11; // m^3 kg^-1 s^-2
+    private const double MinDistanceSI = 0.001; // Softening threshold in meters
 
+    private readonly double _gravitationalConstant;
+    private readonly double _minDistance;
+
+    /// <summary>
+    /// Creates N-body gravity model with default SI units (meters).
+    /// </summary>
     public NBodyGravityModel(float timeStepSeconds)
+        : this(timeStepSeconds, 1.0)
     {
         // Time step not needed for gravity calculation (force only)
+    }
+
+    /// <summary>
+    /// Creates N-body gravity model with unit scaling.
+    /// </summary>
+    /// <param name="timeStepSeconds">Simulation time step (not used for gravity)</param>
+    /// <param name="unitScale">How many SI units per property unit (e.g., 1000 for km, 1 for m)</param>
+    public NBodyGravityModel(float timeStepSeconds, double unitScale)
+    {
+        if (unitScale <= 0)
+            throw new ArgumentException("Unit scale must be greater than zero", nameof(unitScale));
+
+        // Scale constants for the given unit system
+        // If distance is scaled by unitScale, then distance� is scaled by unitScale�
+        // So G must be scaled by 1/(unitScale�) to maintain correct force magnitudes
+        _gravitationalConstant = GravitationalConstantSI / (unitScale * unitScale);
+        
+        // Min distance threshold should also be in the same units
+        _minDistance = MinDistanceSI / unitScale;
     }
 
     /// <summary>
@@ -84,10 +112,10 @@ public class NBodyGravityModel : ISimulationModel
                     double dz = otherPosition[2] - position[2];
                     double distance = Math.Sqrt(dx * dx + dy * dy + dz * dz);
 
-                    if (distance <= MinDistanceMeters)
+                    if (distance <= _minDistance)
                         continue;
 
-                    double forceMagnitude = GravitationalConstant * mass * otherMass / (distance * distance);
+                    double forceMagnitude = _gravitationalConstant * mass * otherMass / (distance * distance);
                     
                     // Apply force in direction of separation (normalized)
                     totalForce[0] += (dx / distance) * forceMagnitude;

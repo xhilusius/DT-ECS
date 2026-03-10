@@ -39,7 +39,8 @@ public class StateManager
     /// </summary>
     private VisualizationMapper? _visualizationMapper = null;
     
-    private Dictionary<string, string> _propertyUnits = new();
+    private Dictionary<string, string> _displayPropertyUnits = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, string> _canonicalPropertyUnits = new(StringComparer.OrdinalIgnoreCase);
     private HashSet<string>? _alwaysShowProperties;
     private HashSet<string>? _showOnceProperties;
     private HashSet<string>? _intermediateProperties;
@@ -362,7 +363,7 @@ public class StateManager
 
                             if (allProperties.ContainsKey(propertyType))
                             {
-                                var unit = _propertyUnits.TryGetValue(propertyType, out var unitValue)
+                                var unit = _displayPropertyUnits.TryGetValue(propertyType, out var unitValue)
                                     ? unitValue
                                     : "";
                                 var label = string.IsNullOrWhiteSpace(unit)
@@ -374,8 +375,9 @@ public class StateManager
                                 
                                 if (entityIndex >= 0 && entityIndex < allProperties[propertyType].Count)
                                 {
-                                    var value = allProperties[propertyType][entityIndex];
-                                    var formattedValue = FormatSingleValue(value);
+                                    var rawValue = allProperties[propertyType][entityIndex];
+                                    var displayValue = ConvertValueForDisplay(propertyType, rawValue);
+                                    var formattedValue = FormatSingleValue(displayValue);
                                     Console.WriteLine($"║   {label,-26}: {formattedValue,-32}║");
                                 }
                             }
@@ -421,28 +423,195 @@ public class StateManager
     }
 
     /// <summary>
-    /// Sets the properties configuration containing property visibility settings.
-    /// Configures which properties to show in state reports based on their category.
+    /// Converts a property value from canonical simulation units to display units.
     /// </summary>
-    public void SetPropertiesConfiguration(ServiceManager.PropertiesConfiguration? config)
+    private object ConvertValueForDisplay(string propertyType, object value)
     {
-        if (config?.PropertyUnits != null)
+        if (!_canonicalPropertyUnits.TryGetValue(propertyType, out var sourceUnit) || string.IsNullOrWhiteSpace(sourceUnit))
+            return value;
+
+        if (!_displayPropertyUnits.TryGetValue(propertyType, out var targetUnit) || string.IsNullOrWhiteSpace(targetUnit))
+            return value;
+
+        if (string.Equals(sourceUnit, targetUnit, StringComparison.OrdinalIgnoreCase))
+            return value;
+
+        return value switch
         {
-            _propertyUnits = new Dictionary<string, string>(config.PropertyUnits, StringComparer.OrdinalIgnoreCase);
+            float scalar => (float)ConvertScalarUnit(scalar, sourceUnit, targetUnit),
+            double scalar => ConvertScalarUnit(scalar, sourceUnit, targetUnit),
+            double[] vector when vector.Length == 3 => new double[]
+            {
+                ConvertScalarUnit(vector[0], sourceUnit, targetUnit),
+                ConvertScalarUnit(vector[1], sourceUnit, targetUnit),
+                ConvertScalarUnit(vector[2], sourceUnit, targetUnit)
+            },
+            Vector3 vector => new Vector3(
+                (float)ConvertScalarUnit(vector.X, sourceUnit, targetUnit),
+                (float)ConvertScalarUnit(vector.Y, sourceUnit, targetUnit),
+                (float)ConvertScalarUnit(vector.Z, sourceUnit, targetUnit)
+            ),
+            _ => value
+        };
+    }
+
+    /// <summary>
+    /// Converts a scalar value between compatible units.
+    /// </summary>
+    private static double ConvertScalarUnit(double value, string sourceUnit, string targetUnit)
+    {
+        if (!TryGetUnitFactor(sourceUnit, out var sourceCategory, out var sourceFactorToBase))
+            return value;
+
+        if (!TryGetUnitFactor(targetUnit, out var targetCategory, out var targetFactorToBase))
+            return value;
+
+        if (!string.Equals(sourceCategory, targetCategory, StringComparison.OrdinalIgnoreCase))
+            return value;
+
+        return value * sourceFactorToBase / targetFactorToBase;
+    }
+
+    /// <summary>
+    /// Resolves known units to a category and conversion factor to SI base unit.
+    /// </summary>
+    private static bool TryGetUnitFactor(string unit, out string category, out double factorToBase)
+    {
+        var normalized = NormalizeUnit(unit);
+        switch (normalized)
+        {
+            // Length
+            case "m":
+                category = "length";
+                factorToBase = 1.0;
+                return true;
+            case "km":
+                category = "length";
+                factorToBase = 1000.0;
+                return true;
+            case "cm":
+                category = "length";
+                factorToBase = 0.01;
+                return true;
+            case "mm":
+                category = "length";
+                factorToBase = 0.001;
+                return true;
+            case "au":
+                category = "length";
+                factorToBase = 149_597_870_700.0;
+                return true;
+
+            // Speed
+            case "m/s":
+                category = "speed";
+                factorToBase = 1.0;
+                return true;
+            case "km/s":
+                category = "speed";
+                factorToBase = 1000.0;
+                return true;
+            case "cm/s":
+                category = "speed";
+                factorToBase = 0.01;
+                return true;
+            case "mm/s":
+                category = "speed";
+                factorToBase = 0.001;
+                return true;
+
+            // Mass
+            case "kg":
+                category = "mass";
+                factorToBase = 1.0;
+                return true;
+            case "g":
+                category = "mass";
+                factorToBase = 0.001;
+                return true;
+            case "mg":
+                category = "mass";
+                factorToBase = 0.000001;
+                return true;
+
+            // Force
+            case "n":
+                category = "force";
+                factorToBase = 1.0;
+                return true;
+            case "kn":
+                category = "force";
+                factorToBase = 1000.0;
+                return true;
+            default:
+                category = string.Empty;
+                factorToBase = 1.0;
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// Normalizes unit strings to canonical lookup keys.
+    /// </summary>
+    private static string NormalizeUnit(string unit)
+    {
+        var normalized = unit.Trim().ToLowerInvariant().Replace(" ", string.Empty);
+        return normalized switch
+        {
+            "meter" or "meters" => "m",
+            "kilometer" or "kilometers" => "km",
+            "centimeter" or "centimeters" => "cm",
+            "millimeter" or "millimeters" => "mm",
+            "astronomicalunit" or "astronomicalunits" => "au",
+            "meter/second" or "meters/second" or "meterpersecond" or "meterspersecond" => "m/s",
+            "kilometer/second" or "kilometers/second" or "kilometerpersecond" or "kilometerspersecond" => "km/s",
+            "centimeter/second" or "centimeters/second" or "centimeterpersecond" or "centimeterspersecond" => "cm/s",
+            "millimeter/second" or "millimeters/second" or "millimeterpersecond" or "millimeterspersecond" => "mm/s",
+            "kilogram" or "kilograms" => "kg",
+            "gram" or "grams" => "g",
+            "milligram" or "milligrams" => "mg",
+            "newton" or "newtons" => "n",
+            "kilonewton" or "kilonewtons" => "kn",
+            _ => normalized
+        };
+    }
+
+    /// <summary>
+    /// Sets canonical and display properties configuration.
+    /// Canonical units are used for simulation values in storage.
+    /// Display units are used only for state report output.
+    /// </summary>
+    public void SetPropertiesConfiguration(
+        ServiceManager.PropertiesConfiguration? canonicalConfig,
+        ServiceManager.PropertiesConfiguration? displayConfig)
+    {
+        if (canonicalConfig?.PropertyUnits != null)
+        {
+            _canonicalPropertyUnits = new Dictionary<string, string>(canonicalConfig.PropertyUnits, StringComparer.OrdinalIgnoreCase);
         }
 
-        if (config?.PropertyVisibility != null)
+        if (displayConfig?.PropertyUnits != null)
+        {
+            _displayPropertyUnits = new Dictionary<string, string>(displayConfig.PropertyUnits, StringComparer.OrdinalIgnoreCase);
+        }
+        else
+        {
+            _displayPropertyUnits = new Dictionary<string, string>(_canonicalPropertyUnits, StringComparer.OrdinalIgnoreCase);
+        }
+
+        var visibilityConfig = displayConfig?.PropertyVisibility ?? canonicalConfig?.PropertyVisibility;
+        if (visibilityConfig != null)
         {
             _alwaysShowProperties = new HashSet<string>(
-                config.PropertyVisibility.AlwaysShow ?? new List<string>(),
+                visibilityConfig.AlwaysShow ?? new List<string>(),
                 StringComparer.OrdinalIgnoreCase
             );
             _showOnceProperties = new HashSet<string>(
-                config.PropertyVisibility.ShowOnce ?? new List<string>(),
+                visibilityConfig.ShowOnce ?? new List<string>(),
                 StringComparer.OrdinalIgnoreCase
             );
             _intermediateProperties = new HashSet<string>(
-                config.PropertyVisibility.Intermediate ?? new List<string>(),
+                visibilityConfig.Intermediate ?? new List<string>(),
                 StringComparer.OrdinalIgnoreCase
             );
         }

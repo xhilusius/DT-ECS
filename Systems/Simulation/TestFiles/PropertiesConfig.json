@@ -1,0 +1,13 @@
+{
+  "propertyUnits": {
+    "Mass": "kg",
+    "Position": "m",
+    "Displacement": "m",
+    "CurrentSpeed": "m/s",
+    "Radius": "m",
+    "GravityForce": "N",
+    "DragForce": "N",
+    "MagnetismForce": "N",
+    "WindForce": "N"
+  }
+}

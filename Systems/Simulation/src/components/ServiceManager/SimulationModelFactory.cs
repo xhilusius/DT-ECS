@@ -10,9 +10,10 @@ using Simulation.ServiceManager.SimulationModels;
 public class SimulationModelFactory
 {
     /// <summary>
-    /// Creates a simulation model instance by name.
+    /// Creates a simulation model instance by name with SI units (default).
     /// </summary>
     /// <param name="modelName">Name of the model (e.g., "GravityModel", "PositionModel")</param>
+    /// <param name="timeStepSeconds">Time step in seconds</param>
     /// <returns>An instance of the requested ISimulationModel</returns>
     /// <exception cref="ArgumentException">If the model name is not recognized</exception>
     public static ISimulationModel CreateModel(string modelName, float timeStepSeconds)
@@ -33,3 +34,4 @@ public class SimulationModelFactory
         };
     }
 }
+

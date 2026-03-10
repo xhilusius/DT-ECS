@@ -159,47 +159,51 @@ public class ServiceSetupConfiguration
 
 /// <summary>
 /// Loads and parses Service Setup configuration files.
-/// Supports reading JSON configuration files from the ServiceSetups folder.
+/// Supports reading JSON configuration files from the TestFiles folder organized by setup name.
+/// Each setup has its own folder (e.g., TestFiles/DefaultSetup/, TestFiles/OrbitalSetup/) containing:
+/// - Setup.json (the setup configuration)
+/// - PropertiesConfig.json (property units and display settings)
 /// </summary>
 public class ServiceSetupLoader
 {
-    private const string ServiceSetupsFolder = "ServiceSetups";
+    private const string EntityPropertiesConfigFileName = "PropertiesConfig.json";
 
     /// <summary>
-    /// Loads a service setup configuration from a JSON file.
+    /// Loads a service setup configuration from a Setup.json file in a named setup folder.
+    /// The file is expected to be in TestFiles/{SetupName}/Setup.json folder.
     /// </summary>
-    /// <param name="configurationFileName">Name of the configuration file (e.g., "DefaultSetup.json")</param>
+    /// <param name="setupName">Name of the setup folder (e.g., "DefaultSetup", "OrbitalSetup")</param>
     /// <returns>Parsed ServiceSetupConfiguration</returns>
     /// <exception cref="FileNotFoundException">If the configuration file is not found</exception>
     /// <exception cref="JsonException">If the JSON is invalid</exception>
-    public static ServiceSetupConfiguration LoadConfiguration(string configurationFileName)
+    public static ServiceSetupConfiguration LoadConfiguration(string setupName)
     {
-        if (string.IsNullOrWhiteSpace(configurationFileName))
-            throw new ArgumentException("Configuration file name cannot be null or empty", nameof(configurationFileName));
+        if (string.IsNullOrWhiteSpace(setupName))
+            throw new ArgumentException("Setup name cannot be null or empty", nameof(setupName));
 
         // Determine the path to the configuration file
-        // The file is expected to be in the ServiceSetups folder relative to this assembly
+        // The file is expected to be in TestFiles/{SetupName}/Setup.json folder relative to this assembly
         var assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
         var assemblyFolder = System.IO.Path.GetDirectoryName(assemblyPath);
         
         if (string.IsNullOrEmpty(assemblyFolder))
             throw new InvalidOperationException("Could not determine assembly folder");
 
-        // Navigate from the assembly location up to the project root and down to ServiceSetups
+        // Navigate from the assembly location up to the project root and down to TestFiles/{SetupName}/
         // Assembly is typically at: bin/Debug/net9.0/Simulation.dll
-        // We need to get to: src/components/ServiceManager/ServiceSetups/
+        // We need to get to: TestFiles/{SetupName}/Setup.json
         string configPath = System.IO.Path.Combine(
             assemblyFolder, 
             "..", "..", "..", 
-            "src", "components", "ServiceManager", ServiceSetupsFolder, 
-            configurationFileName
+            "TestFiles", setupName,
+            "Setup.json"
         );
 
         // Normalize the path
         configPath = System.IO.Path.GetFullPath(configPath);
 
         if (!System.IO.File.Exists(configPath))
-            throw new FileNotFoundException($"Configuration file not found: {configPath}");
+            throw new FileNotFoundException($"Setup configuration file not found: {configPath}");
 
         try
         {
@@ -221,7 +225,7 @@ public class ServiceSetupLoader
         }
         catch (JsonException ex)
         {
-            throw new JsonException($"Error parsing configuration file {configurationFileName}: {ex.Message}", ex);
+            throw new JsonException($"Error parsing setup configuration for {setupName}: {ex.Message}", ex);
         }
     }
 
@@ -313,17 +317,18 @@ public class ServiceSetupLoader
     }
 
     /// <summary>
-    /// Loads the properties configuration from a JSON file.
-    /// Contains property units and visibility settings.
+    /// Loads the properties configuration from a JSON file in a setup folder.
+    /// Contains property units and visibility settings specific to each setup.
+    /// The file is expected to be in TestFiles/{SetupName}/PropertiesConfig.json
     /// </summary>
-    /// <param name="configurationFileName">Name of the properties configuration file (e.g., "PropertiesConfig.json")</param>
+    /// <param name="setupName">Name of the setup folder (e.g., "DefaultSetup", "OrbitalSetup")</param>
     /// <returns>Parsed PropertiesConfiguration</returns>
     /// <exception cref="FileNotFoundException">If the configuration file is not found</exception>
     /// <exception cref="JsonException">If the JSON is invalid</exception>
-    public static PropertiesConfiguration LoadPropertiesConfiguration(string configurationFileName = "PropertiesConfig.json")
+    public static PropertiesConfiguration LoadPropertiesConfiguration(string setupName = "DefaultSetup")
     {
-        if (string.IsNullOrWhiteSpace(configurationFileName))
-            throw new ArgumentException("Configuration file name cannot be null or empty", nameof(configurationFileName));
+        if (string.IsNullOrWhiteSpace(setupName))
+            throw new ArgumentException("Setup name cannot be null or empty", nameof(setupName));
 
         // Determine the path to the configuration file
         var assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
@@ -332,11 +337,12 @@ public class ServiceSetupLoader
         if (string.IsNullOrEmpty(assemblyFolder))
             throw new InvalidOperationException("Could not determine assembly folder");
 
+        // Navigate to TestFiles/{SetupName}/PropertiesConfig.json
         string configPath = System.IO.Path.Combine(
             assemblyFolder, 
             "..", "..", "..", 
-            "src", "components", "ServiceManager", ServiceSetupsFolder, 
-            configurationFileName
+            "TestFiles", setupName,
+            "PropertiesConfig.json"
         );
 
         // Normalize the path
@@ -364,8 +370,80 @@ public class ServiceSetupLoader
         }
         catch (JsonException ex)
         {
-            throw new JsonException($"Error parsing properties configuration file {configurationFileName}: {ex.Message}", ex);
+            throw new JsonException($"Error parsing properties configuration for {setupName}: {ex.Message}", ex);
         }
+    }
+
+    /// <summary>
+    /// Loads the canonical entity properties configuration from TestFiles/PropertiesConfig.json.
+    /// This configuration defines the units used for entity definitions and simulation calculations.
+    /// If the file is missing or invalid, a default SI configuration is returned.
+    /// </summary>
+    public static PropertiesConfiguration LoadEntityPropertiesConfiguration()
+    {
+        var defaultConfiguration = CreateDefaultEntityPropertiesConfiguration();
+
+        var assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+        var assemblyFolder = System.IO.Path.GetDirectoryName(assemblyPath);
+
+        if (string.IsNullOrEmpty(assemblyFolder))
+            return defaultConfiguration;
+
+        string configPath = System.IO.Path.Combine(
+            assemblyFolder,
+            "..", "..", "..",
+            "TestFiles",
+            EntityPropertiesConfigFileName
+        );
+
+        configPath = System.IO.Path.GetFullPath(configPath);
+
+        if (!System.IO.File.Exists(configPath))
+            return defaultConfiguration;
+
+        try
+        {
+            string jsonContent = System.IO.File.ReadAllText(configPath);
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                AllowTrailingCommas = true,
+                ReadCommentHandling = JsonCommentHandling.Skip
+            };
+
+            var configuration = JsonSerializer.Deserialize<PropertiesConfiguration>(jsonContent, options);
+
+            if (configuration?.PropertyUnits == null || configuration.PropertyUnits.Count == 0)
+                return defaultConfiguration;
+
+            return configuration;
+        }
+        catch
+        {
+            return defaultConfiguration;
+        }
+    }
+
+    /// <summary>
+    /// Returns the default canonical unit map for entity properties.
+    /// </summary>
+    public static PropertiesConfiguration CreateDefaultEntityPropertiesConfiguration()
+    {
+        return new PropertiesConfiguration
+        {
+            PropertyUnits = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Mass"] = "kg",
+                ["Position"] = "m",
+                ["Displacement"] = "m",
+                ["CurrentSpeed"] = "m/s",
+                ["Radius"] = "m",
+                ["GravityForce"] = "N",
+                ["DragForce"] = "N",
+                ["MagnetismForce"] = "N",
+                ["WindForce"] = "N"
+            }
+        };
     }
 }
 

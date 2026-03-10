@@ -3,7 +3,7 @@
     // ===== TEST CASE 1 =====
     {
       "name": "Single entity: gravity and positioning",
-      "configurationFile": "DefaultSetup.json",
+      "configurationFile": "DefaultSetup",
       "description": "Single entity falling under gravity with terminal velocity",
       "headerLines": [
         "TEST CASE 1: Single Entity - Gravity & Positioning"
@@ -21,7 +21,7 @@
     // ===== TEST CASE 2 =====
     {
       "name": "Three entities: mass and radius variations",
-      "configurationFile": "DefaultSetup.json",
+      "configurationFile": "DefaultSetup",
       "description": "Three entities with different mass/radius combinations showing terminal velocity differences",
       "headerLines": [
         "TEST CASE 2: Three Entities - Mass & Radius Variations",
@@ -43,7 +43,7 @@
     // ===== TEST CASE 3 =====
     {
       "name": "Two entities: one complete, one incomplete",
-      "configurationFile": "DefaultSetup.json",
+      "configurationFile": "DefaultSetup",
       "description": "Two entities: one with all properties (simulates), one missing Mass (no behavior)",
       "headerLines": [
         "TEST CASE 3: Two Entities - Complete vs Incomplete",
@@ -70,7 +70,7 @@
     // ===== TEST CASE 4 =====
     {
       "name": "Magnetism: metallic vs non-metallic entities",
-      "configurationFile": "DefaultSetup.json",
+      "configurationFile": "DefaultSetup",
       "description": "Two entities: one metallic (affected by magnetic field), one non-metallic (gravity only)",
       "headerLines": [
         "TEST CASE 4: Magnetism - Metallic vs Non-Metallic",
@@ -91,7 +91,7 @@
     // ===== TEST CASE 5 =====
     {
       "name": "Wind effect: large radius vs small radius",
-      "configurationFile": "DefaultSetup.json",
+      "configurationFile": "DefaultSetup",
       "description": "Two entities with same mass: one with large radius (affected by wind), one with small radius (minimal wind effect)",
       "headerLines": [
         "TEST CASE 5: Wind Effect - Large vs Small Radius",
@@ -112,7 +112,7 @@
     // ===== TEST CASE 6 =====
     {
       "name": "Combined forces: gravity only, gravity+magnetism, gravity+wind, gravity+magnetism+wind",
-      "configurationFile": "DefaultSetup.json",
+      "configurationFile": "DefaultSetup",
       "description": "Four entities with identical size/mass but different force combinations: gravity-only, gravity+magnetism, gravity+wind, gravity+magnetism+wind",
       "headerLines": [
         "TEST CASE 6: Combined Forces - Force Composition",
@@ -137,7 +137,7 @@
     // ===== TEST CASE 7 =====
     {
       "name": "Single entity + Earth: N-body gravity",
-      "configurationFile": "NBodySetup.json",
+      "configurationFile": "NBodySetup",
       "description": "Single entity falling under N-body gravitational attraction from Earth",
       "headerLines": [
         "TEST CASE 7: Single Entity + Earth - N-Body Gravity"
@@ -157,7 +157,7 @@
     // ===== TEST CASE 8 =====
     {
       "name": "Three entities + Earth: N-body mass and radius variations",
-      "configurationFile": "NBodySetup.json",
+      "configurationFile": "NBodySetup",
       "description": "Three entities with different mass/radius combinations under N-body gravitational attraction from Earth",
       "headerLines": [
         "TEST CASE 8: Three Entities + Earth - N-Body Mass & Radius Variations",
@@ -181,7 +181,7 @@
     // ===== TEST CASE 9 =====
     {
       "name": "Two entities + Earth: one complete, one incomplete",
-      "configurationFile": "NBodySetup.json",
+      "configurationFile": "NBodySetup",
       "description": "Two entities under N-body gravity: one with all properties (simulates), one missing Mass (no behavior)",
       "headerLines": [
         "TEST CASE 9: Two Entities + Earth - Complete vs Incomplete",
@@ -204,7 +204,7 @@
     // ===== TEST CASE 10 =====
     {
       "name": "Magnetism + Earth: metallic vs non-metallic entities with N-body gravity",
-      "configurationFile": "NBodySetup.json",
+      "configurationFile": "NBodySetup",
       "description": "Two entities under N-body gravity: one metallic (affected by magnetic field), one non-metallic (gravity only)",
       "headerLines": [
         "TEST CASE 10: Magnetism + Earth - Metallic vs Non-Metallic",
@@ -227,7 +227,7 @@
     // ===== TEST CASE 11 =====
     {
       "name": "Wind effect + Earth: large radius vs small radius with N-body gravity",
-      "configurationFile": "NBodySetup.json",
+      "configurationFile": "NBodySetup",
       "description": "Two entities with same mass under N-body gravity: one with large radius (affected by wind), one with small radius (minimal wind effect)",
       "headerLines": [
         "TEST CASE 11: Wind Effect + Earth - Large vs Small Radius",
@@ -250,7 +250,7 @@
     // ===== TEST CASE 12 =====
     {
       "name": "Combined forces + Earth: gravity only, gravity+magnetism, gravity+wind, gravity+magnetism+wind with N-body",
-      "configurationFile": "NBodySetup.json",
+      "configurationFile": "NBodySetup",
       "description": "Four entities with identical size/mass but different force combinations under N-body gravity: gravity-only, gravity+magnetism, gravity+wind, gravity+magnetism+wind",
       "headerLines": [
         "TEST CASE 12: Combined Forces + Earth - Force Composition with N-Body",
@@ -277,7 +277,7 @@
     // ===== TEST CASE 13 =====
     {
       "name": "N-body gravity: late spawn",
-      "configurationFile": "NBodySetup.json",
+      "configurationFile": "NBodySetup",
       "description": "N-body gravity only with one ball at start and a second ball spawned mid-simulation",
       "headerLines": [
         "TEST CASE 13: N-Body Gravity - Late Spawn",
@@ -305,7 +305,7 @@
     // ===== TEST CASE 14 =====
     {
       "name": "Entity removal and name reuse",
-      "configurationFile": "NBodySetup.json",
+      "configurationFile": "NBodySetup",
       "description": "Demonstrates entity removal freeing up names for reuse",
       "headerLines": [
         "TEST CASE 14: Entity Removal & Name Reuse",
@@ -334,6 +334,53 @@
           ]
         }
       ]
+    },
+
+    // ===== TEST CASE 15 =====
+    {
+      "name": "Orbital mechanics: Moon-Earth 2-body system",
+      "configurationFile": "OrbitalSetup",
+      "description": "Moon orbiting Earth in a stable elliptical orbit over ~27.7 days",
+      "headerLines": [
+        "TEST CASE 15: Orbital Mechanics - Moon-Earth 2-Body System",
+        "Earth: at origin with zero velocity",
+        "Moon: at 384,400 km with tangential velocity 1,022 m/s",
+        "Simulation: 4000 steps × 600s = ~27.7 days (one lunar orbit)"
+      ],
+      "steps": [
+        {
+          "step": 0,
+          "actions": [
+            { "type": "spawn", "entity": "Earth_ball" },
+            { "type": "spawn", "entity": "Moon" }
+          ]
+        }
+      ]
+    },
+
+    // ===== TEST CASE 16 =====
+    {
+      "name": "Orbital mechanics: Earth-Moon-Sun 3-body system",
+      "configurationFile": "OrbitalSetup",
+      "description": "Moon orbiting Earth while Earth-Moon system orbits the Sun (3-body problem)",
+      "headerLines": [
+        "TEST CASE 16: Orbital Mechanics - Earth-Moon-Sun 3-Body System",
+        "Sun: at origin with zero velocity",
+        "Earth: at 149.6 million km (1 AU) with orbital velocity 29.780 km/s",
+        "Moon: relative to Earth at +384,400 km with combined velocity 30.802 km/s",
+        "Simulation: 4000 steps × 600s = ~27.7 days (observe Moon's perturbed orbit)"
+      ],
+      "steps": [
+        {
+          "step": 0,
+          "actions": [
+            { "type": "spawn", "entity": "Sun" },
+            { "type": "spawn", "entity": "Earth_ball", "properties": { "Position": [1.496e11, 0, 0], "CurrentSpeed": [0, 29780, 0] } },
+            { "type": "spawn", "entity": "Moon", "properties": { "Position": [1.499844e11, 0, 0], "CurrentSpeed": [0, 30802, 0] } }
+          ]
+        }
+      ]
     }
   ]
 }
+

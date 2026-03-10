@@ -17,12 +17,54 @@
         "Color": "Blue"
       }
     },
+    "Earth_ball": {
+      "name": "Earth",
+      "description": "Planet Earth - N-body gravity only",
+      "properties": {
+        "Mass": 5.97e24,
+        "Position": [0, 0, 0],
+        "Displacement": [0, 0, 0],
+        "CurrentSpeed": [0, 0, 0],
+        "Radius": 6.371e6,
+        "GravityForce": [0, 0, 0],
+        "Visualize": true,
+        "Color": "Blue"
+      }
+    },
     "EarthSurface": {
       "name": "EarthSurface",
       "description": "The surface of the Earth, visual reference point",
       "properties": {
         "Position": [0, 6.371e6, 0],
         "Visualize": true
+      }
+    },
+    "Moon": {
+      "name": "Moon",
+      "description": "Earth's Moon - N-body gravity only",
+      "properties": {
+        "Mass": 7.342e22,
+        "Position": [3.844e8, 0, 0],
+        "Displacement": [0, 0, 0],
+        "CurrentSpeed": [0, 1022, 0],
+        "Radius": 1.737e6,
+        "GravityForce": [0, 0, 0],
+        "Visualize": true,
+        "Color": "Gray"
+      }
+    },
+    "Sun": {
+      "name": "Sun",
+      "description": "The Sun - N-body gravity only",
+      "properties": {
+        "Mass": 1.989e30,
+        "Position": [0, 0, 0],
+        "Displacement": [0, 0, 0],
+        "CurrentSpeed": [0, 0, 0],
+        "Radius": 6.96e8,
+        "GravityForce": [0, 0, 0],
+        "Visualize": true,
+        "Color": "Yellow"
       }
     },
 
@@ -119,3 +161,4 @@
     }
   }
 }
+
