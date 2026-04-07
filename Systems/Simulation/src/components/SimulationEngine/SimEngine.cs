@@ -2,7 +2,6 @@ namespace Simulation.SimulationEngine;
 
 using System.Numerics;
 using Simulation.Interfaces;
-using Simulation.ServiceManager;
 using Simulation.StateManager;
 
 /// <summary>

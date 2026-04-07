@@ -1,4 +1,4 @@
-namespace Simulation.ServiceManager;
+namespace Simulation.SimulationEngine;
 
 using Simulation.Interfaces;
 
