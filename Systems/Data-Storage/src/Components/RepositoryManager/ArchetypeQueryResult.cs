@@ -2,7 +2,7 @@ namespace DataStorage.RepositoryManager;
 
 /// <summary>
 /// Result for archetype queries including property arrays and entity-to-index mappings.
-/// Provides the SimEngine with the index grouping needed to correlate property arrays.
+/// Provides the TransformExecutor with the index grouping needed to correlate property arrays.
 /// </summary>
 public class ArchetypeQueryResult
 {

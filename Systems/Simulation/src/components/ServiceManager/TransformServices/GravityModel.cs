@@ -1,4 +1,4 @@
-namespace Simulation.ServiceManager.SimulationModels;
+namespace Simulation.ServiceManager.TransformServices;
 
 using System.Numerics;
 using Simulation.Interfaces;
@@ -24,7 +24,7 @@ using DataStorage.Interfaces;
 /// This enables true parallel execution of force models on multi-core systems.
 /// Uses double precision for GravityForce to handle Earth-scale simulations.
 /// </summary>
-public class GravityModel : ISimulationModel
+public class GravityModel : ITransformService
 {
     private const double GravitationalAcceleration = 9.81; // m/s² (Earth's gravity)
 

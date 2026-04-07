@@ -1,4 +1,4 @@
-namespace Simulation.ServiceManager.SimulationModels;
+namespace Simulation.ServiceManager.TransformServices;
 
 using System.Numerics;
 using Simulation.Interfaces;
@@ -22,7 +22,7 @@ using Simulation.StateManager;
 /// of force models on multi-core systems without race conditions.
 /// Uses double precision for CurrentSpeed and Displacement to handle Earth-scale simulations.
 /// </summary>
-public class PhysicsIntegrator : ISimulationModel
+public class PhysicsIntegrator : ITransformService
 {
     private readonly double _timeStepSeconds;
 

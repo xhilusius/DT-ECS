@@ -1,4 +1,4 @@
-namespace Simulation.ServiceManager.SimulationModels;
+namespace Simulation.ServiceManager.TransformServices;
 
 using System.Numerics;
 using Simulation.Interfaces;
@@ -17,7 +17,7 @@ using DataStorage.Interfaces;
 /// SimEngine handles fetching inputs from repository and writing outputs back.
 /// Uses double precision for Position and Displacement to handle Earth-scale simulations.
 /// </summary>
-public class PositionModel : ISimulationModel
+public class PositionModel : ITransformService
 {
     /// <summary>
     /// Executes position update on entities that have Position AND Displacement.

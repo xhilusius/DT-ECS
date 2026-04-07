@@ -1,4 +1,4 @@
-namespace Simulation.ServiceManager.SimulationModels;
+namespace Simulation.ServiceManager.TransformServices;
 
 using System.Numerics;
 using Simulation.Interfaces;
@@ -19,7 +19,7 @@ using Simulation.StateManager;
 /// Each entity''s net force is the sum of pairwise forces from all other entities.
 /// Uses double precision for Position and Force calculations to handle Earth-scale simulations.
 /// </summary>
-public class NBodyGravityModel : ISimulationModel
+public class NBodyGravityModel : ITransformService
 {
     private const double GravitationalConstantSI = 6.67430e-11; // m^3 kg^-1 s^-2
     private const double MinDistanceSI = 0.001; // Softening threshold in meters

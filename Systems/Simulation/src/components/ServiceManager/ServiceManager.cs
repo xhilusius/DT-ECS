@@ -1,32 +1,32 @@
 namespace Simulation.ServiceManager;
 
 using System.Text.Json;
-using Simulation.SimulationEngine;
+using Simulation.TransformExecutor;
 
 /// <summary>
-/// Manages the execution of SimulationServices respecting their dependencies.
+/// Manages the ordered execution of services respecting their property dependencies.
 /// 
 /// Responsibilities:
 /// - Register services with their input/output property declarations
 /// - Determine execution order based on property dependencies
-/// - Provide executable batches to SimEngine (services that can run in parallel)
+/// - Provide executable batches to TransformExecutor (services that can run in parallel)
 /// - Wait for each batch to complete before providing the next
 /// - Manage simulation state (Running, Paused, Stopped)
 /// - Control the simulation loop
 /// 
 /// Execution model:
 /// 1. ServiceManager computes which services can execute (dependencies met)
-/// 2. ServiceManager provides batch to SimEngine
-/// 3. SimEngine executes batch, services read/write properties
-/// 4. SimEngine returns results
+/// 2. ServiceManager provides batch to TransformExecutor
+/// 3. TransformExecutor executes batch, services read/write properties
+/// 4. TransformExecutor returns results
 /// 5. ServiceManager updates available properties, computes next batch
 /// 6. Repeat until all services executed
 /// 
-/// Does not own SimEngine - receives it as a reference.
+/// Does not own TransformExecutor - receives it as a reference.
 /// </summary>
 public class ServiceManager
 {
-    private readonly SimEngine _simEngine;
+    private readonly TransformExecutor _transformExecutor;
     private readonly Dictionary<string, ServiceDescriptor> _services;
     private readonly HashSet<string> _completedServices;
     private readonly HashSet<string> _availableProperties;
@@ -59,13 +59,13 @@ public class ServiceManager
     /// Creates a ServiceManager that loads configuration from a JSON file.
     /// Call InitializeAsync after construction to load services from configuration.
     /// </summary>
-    /// <param name="simEngine">The SimEngine instance to use for service execution</param>
-    public ServiceManager(SimEngine simEngine)
+    /// <param name="transformExecutor">The TransformExecutor instance to use for service execution</param>
+    public ServiceManager(TransformExecutor transformExecutor)
     {
-        if (simEngine == null)
-            throw new ArgumentNullException(nameof(simEngine));
+        if (transformExecutor == null)
+            throw new ArgumentNullException(nameof(transformExecutor));
 
-        _simEngine = simEngine;
+        _transformExecutor = transformExecutor;
         _services = new Dictionary<string, ServiceDescriptor>();
         _completedServices = new HashSet<string>();
         _availableProperties = new HashSet<string>();
@@ -245,7 +245,7 @@ public class ServiceManager
     /// </summary>
     public async Task ClearAllStateAsync()
     {
-        await _simEngine.ClearAllStateAsync();
+        await _transformExecutor.ClearAllStateAsync();
 
         lock (_stateLock)
         {
@@ -326,7 +326,7 @@ public class ServiceManager
             _availableProperties.Clear();
         }
 
-        var existingPropertyTypes = await _simEngine.GetStateManager()
+        var existingPropertyTypes = await _transformExecutor.GetStateManager()
             .GetRepositoryManager()
             .GetAllPropertyTypesAsync();
 
@@ -366,7 +366,7 @@ public class ServiceManager
                 }
 
                 // Execute the batch of services (in parallel or sequential based on configuration)
-                await _simEngine.ExecuteServiceBatchAsync(executableServices, _parallelExecution);
+                await _transformExecutor.ExecuteServiceBatchAsync(executableServices, _parallelExecution);
 
                 // Mark as completed and update available properties
                 lock (_stateLock)
@@ -391,7 +391,7 @@ public class ServiceManager
             _stepCounter++;
             currentStep = _stepCounter;
         }
-        await _simEngine.GetStateManager().ReportStateAsync($"Simulation step {currentStep} complete");
+        await _transformExecutor.GetStateManager().ReportStateAsync($"Simulation step {currentStep} complete");
     }
 
     /// <summary>
@@ -414,12 +414,12 @@ public class ServiceManager
             _stepDelayMs = config.StepDelayMs;
 
             // Create a mapping of model names to their configurations for easy lookup
-            var modelConfigMap = config.SimulationModels.ToDictionary(m => m.Name, m => m);
+            var modelConfigMap = config.Services.ToDictionary(m => m.Name, m => m);
 
             var timeStepSeconds = ServiceSetupLoader.GetTimeStepSeconds(config.TimeStep);
-            _simEngine.GetStateManager().SetPropertiesConfiguration(entityPropertiesConfig, propertiesConfig);
+            _transformExecutor.GetStateManager().SetPropertiesConfiguration(entityPropertiesConfig, propertiesConfig);
 
-            var repositoryManager = _simEngine.GetStateManager().GetRepositoryManager();
+            var repositoryManager = _transformExecutor.GetStateManager().GetRepositoryManager();
 
             // Process each batch and register services
             _serviceToBatchIndex = new Dictionary<string, int>();
@@ -442,10 +442,10 @@ public class ServiceManager
                     );
 
                     // Create the model instance
-                    var modelInstance = SimulationModelFactory.CreateModel(modelName, timeStepSeconds);
+                    var modelInstance = TransformServiceFactory.CreateModel(modelName, timeStepSeconds);
 
                     // Register the model with SimEngine
-                    _simEngine.RegisterService(modelInstance);
+                    _transformExecutor.RegisterService(modelInstance);
 
                     // Create and register the service descriptor
                     var descriptor = new ServiceDescriptor(

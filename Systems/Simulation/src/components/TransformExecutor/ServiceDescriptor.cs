@@ -1,4 +1,4 @@
-namespace Simulation.SimulationEngine;
+namespace Simulation.TransformExecutor;
 
 using Simulation.Interfaces;
 
@@ -23,9 +23,9 @@ public class ServiceDescriptor
     public string ServiceName { get; set; }
 
     /// <summary>
-    /// The actual service to execute (must implement ISimulationModel).
+    /// The actual service to execute (must implement ITransformService).
     /// </summary>
-    public ISimulationModel Service { get; set; }
+    public ITransformService Service { get; set; }
 
     /// <summary>
     /// List of property names this service requires as input (must exist before execution).
@@ -42,7 +42,7 @@ public class ServiceDescriptor
     /// </summary>
     public List<string> OutputProperties { get; set; }
 
-    public ServiceDescriptor(string serviceName, ISimulationModel service, List<string> inputProperties, List<string> outputProperties, List<string>? optionalInputProperties = null)
+    public ServiceDescriptor(string serviceName, ITransformService service, List<string> inputProperties, List<string> outputProperties, List<string>? optionalInputProperties = null)
     {
         if (string.IsNullOrWhiteSpace(serviceName))
             throw new ArgumentException("Service name cannot be null or empty", nameof(serviceName));

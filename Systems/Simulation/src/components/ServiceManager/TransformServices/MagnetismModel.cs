@@ -1,4 +1,4 @@
-namespace Simulation.ServiceManager.SimulationModels;
+namespace Simulation.ServiceManager.TransformServices;
 
 using System.Numerics;
 using Simulation.Interfaces;
@@ -27,7 +27,7 @@ using Simulation.StateManager;
 /// This enables true parallel execution of force models on multi-core systems.
 /// Uses double precision for MagnetismForce to handle Earth-scale simulations.
 /// </summary>
-public class MagnetismModel : ISimulationModel
+public class MagnetismModel : ITransformService
 {
     private const double MagneticFieldStrength = 2.5; // m/s² (adjustable magnetic acceleration)
     private readonly float _timeStepSeconds;

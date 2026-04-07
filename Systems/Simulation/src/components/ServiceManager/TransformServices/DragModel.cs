@@ -1,4 +1,4 @@
-namespace Simulation.ServiceManager.SimulationModels;
+namespace Simulation.ServiceManager.TransformServices;
 
 using System.Numerics;
 using Simulation.Interfaces;
@@ -27,7 +27,7 @@ using Simulation.StateManager;
 /// This enables true parallel execution of force models on multi-core systems.
 /// Uses double precision for CurrentSpeed and DragForce to handle Earth-scale simulations.
 /// </summary>
-public class DragModel : ISimulationModel
+public class DragModel : ITransformService
 {
     private const double AirDensity = 1.225; // kg/m³ at sea level
     private const double DragCoefficientSphere = 0.47; // Typical drag coefficient for a sphere

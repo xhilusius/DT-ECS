@@ -1,22 +1,22 @@
 namespace Simulation.ServiceManager;
 
 using Simulation.Interfaces;
-using Simulation.ServiceManager.SimulationModels;
+using Simulation.ServiceManager.TransformServices;
 
 /// <summary>
-/// Factory for creating simulation model instances based on their type names.
-/// Maps configuration names to actual ISimulationModel implementations.
+/// Factory for creating TransformService instances based on their type names.
+/// Maps configuration names to actual ITransformService implementations.
 /// </summary>
-public class SimulationModelFactory
+public class TransformServiceFactory
 {
     /// <summary>
     /// Creates a simulation model instance by name with SI units (default).
     /// </summary>
     /// <param name="modelName">Name of the model (e.g., "GravityModel", "PositionModel")</param>
     /// <param name="timeStepSeconds">Time step in seconds</param>
-    /// <returns>An instance of the requested ISimulationModel</returns>
-    /// <exception cref="ArgumentException">If the model name is not recognized</exception>
-    public static ISimulationModel CreateModel(string modelName, float timeStepSeconds)
+    /// <returns>An instance of the requested ITransformService</returns>
+    /// <exception cref="ArgumentException">If the service name is not recognized</exception>
+    public static ITransformService CreateModel(string modelName, float timeStepSeconds)
     {
         if (string.IsNullOrWhiteSpace(modelName))
             throw new ArgumentException("Model name cannot be null or empty", nameof(modelName));

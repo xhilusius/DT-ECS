@@ -1,46 +1,46 @@
-namespace Simulation.SimulationEngine;
+namespace Simulation.TransformExecutor;
 
 using System.Numerics;
 using Simulation.Interfaces;
 using Simulation.StateManager;
 
 /// <summary>
-/// Orchestrates the execution of registered SimulationServices.
+/// Executes batches of TransformServices against the ECS property store.
 /// 
 /// Responsibilities:
-/// - Maintain registry of simulation services
+/// - Maintain registry of transform services
 /// - Execute service batches provided by ServiceManager
 /// - For each service: request StateManager for inputs, call service, request StateManager to store outputs
 /// - Services in a batch execute to completion (sequentially or in parallel)
 /// 
 /// Data flow:
-/// SimEngine requests StateManager → StateManager queries RepositoryManager → data returned
-/// SimEngine executes service with data (pure computation)
-/// SimEngine requests StateManager to store outputs → StateManager delegates to RepositoryManager
+/// TransformExecutor requests StateManager → StateManager queries RepositoryManager → data returned
+/// TransformExecutor passes bundle to service (pure computation)
+/// TransformExecutor requests StateManager to store outputs → StateManager delegates to RepositoryManager
 /// 
 /// Does not manage service ordering - ServiceManager determines execution order based on dependencies.
 /// Does not manage simulation state - ServiceManager controls Running/Paused/Stopped.
 /// Does not access repository directly - delegates all storage operations to StateManager.
 /// </summary>
-public class SimEngine
+public class TransformExecutor
 {
-    private readonly List<ISimulationModel> _registeredServices;
+    private readonly List<ITransformService> _registeredServices;
     private readonly StateManager _stateManager;
 
-    public SimEngine(StateManager stateManager)
+    public TransformExecutor(StateManager stateManager)
     {
         if (stateManager == null)
             throw new ArgumentNullException(nameof(stateManager));
 
         _stateManager = stateManager;
-        _registeredServices = new List<ISimulationModel>();
+        _registeredServices = new List<ITransformService>();
     }
 
     /// <summary>
     /// Registers a simulation service to be available for execution.
     /// This is called during initialization, before simulation starts.
     /// </summary>
-    public void RegisterService(ISimulationModel service)
+    public void RegisterService(ITransformService service)
     {
         if (service == null)
             throw new ArgumentNullException(nameof(service));
@@ -160,7 +160,7 @@ public class SimEngine
     /// Gets the list of registered services.
     /// Primarily for inspection/debugging.
     /// </summary>
-    public IReadOnlyList<ISimulationModel> GetRegisteredServices()
+    public IReadOnlyList<ITransformService> GetRegisteredServices()
     {
         return _registeredServices.AsReadOnly();
     }

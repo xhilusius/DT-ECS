@@ -7,16 +7,16 @@ using System.Text.Json.Serialization;
 // It functions as the central place to define how simulation models are configured, their input/output properties,
 // and the execution order of models in a simulation run.
 // It includes:
-// - SimulationModelConfig: Defines input/output properties for a single simulation model.
+// - ServiceConfig: Defines input/output properties for a single transform service.
 // - TimeStepConfig: Defines the time step value and unit for the simulation.
 // - PropertyVisibility: Defines which properties to show in state reports (always, once, intermediate).
 // - PropertiesConfiguration: Contains property units and visibility settings, loaded from a JSON file.
 
 /// <summary>
-/// Represents a simulation model configuration entry.
-/// Defines input/output properties for a single simulation model.
+/// Represents a transform service configuration entry.
+/// Defines input/output properties for a single service.
 /// </summary>
-public class SimulationModelConfig
+public class ServiceConfig
 {
     [JsonPropertyName("name")]
     public required string Name { get; set; }
@@ -89,7 +89,7 @@ public class ServiceSetupConfiguration
     public string? Description { get; set; }
 
     [JsonPropertyName("simulationModels")]
-    public required List<SimulationModelConfig> SimulationModels { get; set; }
+    public required List<ServiceConfig> Services { get; set; }
 
     /// <summary>
     /// Time step applied to all models in this setup.
@@ -237,7 +237,7 @@ public class ServiceSetupLoader
         if (string.IsNullOrWhiteSpace(config.Name))
             throw new InvalidOperationException("Configuration must have a name");
 
-        if (config.SimulationModels == null || config.SimulationModels.Count == 0)
+        if (config.Services == null || config.Services.Count == 0)
             throw new InvalidOperationException("Configuration must define at least one simulation model");
 
         if (config.TimeStep == null)
@@ -256,7 +256,7 @@ public class ServiceSetupLoader
             throw new InvalidOperationException("Configuration must define at least one execution batch");
 
         // Verify all execution batch entries refer to defined models
-        var modelNames = new HashSet<string>(config.SimulationModels.Select(m => m.Name));
+        var modelNames = new HashSet<string>(config.Services.Select(m => m.Name));
         var allBatchModels = new HashSet<string>();
 
         for (int batchIndex = 0; batchIndex < config.ExecutionBatches.Count; batchIndex++)
@@ -286,7 +286,7 @@ public class ServiceSetupLoader
         }
 
         // Validate each model
-        foreach (var model in config.SimulationModels)
+        foreach (var model in config.Services)
         {
             if (string.IsNullOrWhiteSpace(model.Name))
                 throw new InvalidOperationException("Model must have a name");

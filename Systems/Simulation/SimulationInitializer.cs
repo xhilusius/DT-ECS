@@ -3,7 +3,6 @@ namespace Simulation;
 using DataStorage.RepositoryManager;
 using Simulation.EntityManager;
 using Simulation.ServiceManager;
-using Simulation.SimulationEngine;
 using Simulation.StateManager;
 using Simulation.InteractionController;
 
@@ -58,11 +57,11 @@ public static class SimulationInitializer
             Console.WriteLine("   📡 Visualization mapper connected - entities will be sent to external tool");
         }
 
-        Console.WriteLine("[4/6] Initializing Simulation Engine...");
-        var simEngine = new SimEngine(stateManager);
+        Console.WriteLine("[4/6] Initializing Transform Executor...");
+        var transformExecutor = new global::Simulation.TransformExecutor.TransformExecutor(stateManager);
 
         Console.WriteLine("[5/6] Initializing Service Manager...");
-        var serviceManager = new global::Simulation.ServiceManager.ServiceManager(simEngine);
+        var serviceManager = new global::Simulation.ServiceManager.ServiceManager(transformExecutor);
         await serviceManager.InitializeAsync(effectiveConfigFile);
 
         Console.WriteLine("[6/6] Initializing Interaction Controller...");

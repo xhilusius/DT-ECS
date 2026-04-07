@@ -13,16 +13,16 @@ using Simulation.EntityManager;
 
 /// <summary>
 /// Manages all state access and reporting for the simulation.
-/// Acts as an intermediary between SimEngine and the underlying RepositoryManager.
+/// Acts as an intermediary between TransformExecutor and the underlying RepositoryManager.
 /// Queries EntityManager to provide entity-aware property mappings.
 /// 
 /// Responsibilities:
-/// - Fetch properties by type for SimEngine
+/// - Fetch properties by type for TransformExecutor
 /// - Provide entity-aware property arrays (which indices belong to same entity)
 /// - Store properties by type when services complete execution
 /// - Report current state in a formatted table
 /// - Clear all properties when resetting
-/// - Handle all storage operations (SimEngine doesn't access repository directly)
+/// - Handle all storage operations (TransformExecutor doesn't access repository directly)
 /// - Query EntityManager to map array indices to entities
 /// - MVP: Notify visualization system of entity creations and state updates
 /// </summary>
@@ -156,7 +156,7 @@ public class StateManager
     /// <summary>
     /// Fetches multiple property arrays and returns entity-aware mapping.
     /// Internal method for fetching raw property arrays.
-    /// Critical for SimEngine when a service requires multiple properties.
+    /// Critical for TransformExecutor when a service requires multiple properties.
     /// 
     /// Returns both the property arrays AND the list of valid entity IDs.
     /// A valid entity ID is one that has ALL the required properties.
@@ -226,7 +226,7 @@ public class StateManager
 
     /// <summary>
     /// Stores property values for a specific property type.
-    /// SimEngine uses this to write output data from services back to storage.
+    /// TransformExecutor uses this to write output data from services back to storage.
     /// </summary>
     public async Task SetPropertiesByTypeAsync(string propertyType, List<object> propertyValues)
     {
