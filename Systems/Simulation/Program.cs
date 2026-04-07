@@ -22,7 +22,7 @@ while (continueRunning)
             var selectedTest = TestCases.All[zeroBasedIndex];
 
             // Step 2: Discover and display available configuration files from TestFiles folder
-            var testFilesPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "TestFiles");
+            var testFilesPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "TestFiles", "CompositeSetups");
             var setupFolders = Directory.GetDirectories(testFilesPath)
                 .Select(f => Path.GetFileName(f))
                 .Where(f => f != null)

@@ -159,8 +159,8 @@ public class ServiceSetupConfiguration
 
 /// <summary>
 /// Loads and parses Service Setup configuration files.
-/// Supports reading JSON configuration files from the TestFiles folder organized by setup name.
-/// Each setup has its own folder (e.g., TestFiles/DefaultSetup/, TestFiles/OrbitalSetup/) containing:
+/// Supports reading JSON configuration files from the TestFiles/CompositeSetups folder organized by setup name.
+/// Each setup has its own folder (e.g., TestFiles/CompositeSetups/DefaultSetup/, TestFiles/CompositeSetups/OrbitalSetup/) containing:
 /// - Setup.json (the setup configuration)
 /// - PropertiesConfig.json (property units and display settings)
 /// </summary>
@@ -170,7 +170,7 @@ public class ServiceSetupLoader
 
     /// <summary>
     /// Loads a service setup configuration from a Setup.json file in a named setup folder.
-    /// The file is expected to be in TestFiles/{SetupName}/Setup.json folder.
+    /// The file is expected to be in TestFiles/CompositeSetups/{SetupName}/Setup.json folder.
     /// </summary>
     /// <param name="setupName">Name of the setup folder (e.g., "DefaultSetup", "OrbitalSetup")</param>
     /// <returns>Parsed ServiceSetupConfiguration</returns>
@@ -189,13 +189,13 @@ public class ServiceSetupLoader
         if (string.IsNullOrEmpty(assemblyFolder))
             throw new InvalidOperationException("Could not determine assembly folder");
 
-        // Navigate from the assembly location up to the project root and down to TestFiles/{SetupName}/
+        // Navigate from the assembly location up to the project root and down to TestFiles/CompositeSetups/{SetupName}/
         // Assembly is typically at: bin/Debug/net9.0/Simulation.dll
-        // We need to get to: TestFiles/{SetupName}/Setup.json
+        // We need to get to: TestFiles/CompositeSetups/{SetupName}/Setup.json
         string configPath = System.IO.Path.Combine(
             assemblyFolder, 
             "..", "..", "..", 
-            "TestFiles", setupName,
+            "TestFiles", "CompositeSetups", setupName,
             "Setup.json"
         );
 
@@ -319,7 +319,7 @@ public class ServiceSetupLoader
     /// <summary>
     /// Loads the properties configuration from a JSON file in a setup folder.
     /// Contains property units and visibility settings specific to each setup.
-    /// The file is expected to be in TestFiles/{SetupName}/PropertiesConfig.json
+    /// The file is expected to be in TestFiles/CompositeSetups/{SetupName}/PropertiesConfig.json
     /// </summary>
     /// <param name="setupName">Name of the setup folder (e.g., "DefaultSetup", "OrbitalSetup")</param>
     /// <returns>Parsed PropertiesConfiguration</returns>
@@ -337,11 +337,11 @@ public class ServiceSetupLoader
         if (string.IsNullOrEmpty(assemblyFolder))
             throw new InvalidOperationException("Could not determine assembly folder");
 
-        // Navigate to TestFiles/{SetupName}/PropertiesConfig.json
+        // Navigate to TestFiles/CompositeSetups/{SetupName}/PropertiesConfig.json
         string configPath = System.IO.Path.Combine(
             assemblyFolder, 
             "..", "..", "..", 
-            "TestFiles", setupName,
+            "TestFiles", "CompositeSetups", setupName,
             "PropertiesConfig.json"
         );
 

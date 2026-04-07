@@ -76,7 +76,7 @@ public class ServiceManager
     /// Asynchronously initializes services by loading configuration from a setup folder.
     /// Must be called after construction to set up services.
     /// </summary>
-    /// <param name="setupName">Name of the setup folder in TestFiles (e.g., "DefaultSetup", "OrbitalSetup")</param>
+    /// <param name="setupName">Name of the setup folder in TestFiles/CompositeSetups (e.g., "DefaultSetup", "OrbitalSetup")</param>
     public async Task InitializeAsync(string setupName)
     {
         if (string.IsNullOrWhiteSpace(setupName))
@@ -402,10 +402,10 @@ public class ServiceManager
     {
         try
         {
-            // Load the setup configuration from TestFiles/{SetupName}/Setup.json
+            // Load the setup configuration from TestFiles/CompositeSetups/{SetupName}/Setup.json
             var config = ServiceSetupLoader.LoadConfiguration(setupName);
 
-            // Load properties configuration (units and visibility settings) from TestFiles/{SetupName}/PropertiesConfig.json
+            // Load properties configuration (units and visibility settings) from TestFiles/CompositeSetups/{SetupName}/PropertiesConfig.json
             var propertiesConfig = ServiceSetupLoader.LoadPropertiesConfiguration(setupName);
             var entityPropertiesConfig = ServiceSetupLoader.LoadEntityPropertiesConfiguration();
 
