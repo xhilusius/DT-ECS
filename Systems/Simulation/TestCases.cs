@@ -281,7 +281,7 @@ public static class TestCases
 
             try
             {
-                var setupConfig = ServiceSetupLoader.LoadConfiguration(setup.ConfigurationFile);
+                var setupConfig = CompositeServiceSetupLoader.LoadConfiguration(setup.ConfigurationFile);
                 int simulationSteps = setupConfig.SimulationSteps;
 
                 var stepsByIndex = setup.Steps.ToDictionary(step => step.Step, step => step.Actions);

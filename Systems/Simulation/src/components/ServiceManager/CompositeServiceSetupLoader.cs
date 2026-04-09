@@ -3,23 +3,43 @@ namespace Simulation.ServiceManager;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-// NOTE: This file defines the configuration classes and loader for simulation setups.
-// It functions as the central place to define how simulation models are configured, their input/output properties,
-// and the execution order of models in a simulation run.
+// NOTE: This file defines the configuration classes and loader for composite service setups.
+// It functions as the central place to define how simulation services are configured, their input/output properties,
+// and the execution order of services in a composite service run.
 // It includes:
-// - ServiceConfig: Defines input/output properties for a single transform service.
+// - ServiceConfig: Defines the type and input/output properties for a single service entry.
 // - TimeStepConfig: Defines the time step value and unit for the simulation.
 // - PropertyVisibility: Defines which properties to show in state reports (always, once, intermediate).
 // - PropertiesConfiguration: Contains property units and visibility settings, loaded from a JSON file.
+// - CompositeServiceSetup: The complete setup configuration, loaded from a Setup.json file.
 
 /// <summary>
-/// Represents a transform service configuration entry.
-/// Defines input/output properties for a single service.
+/// Represents a single service entry in a composite service setup.
+/// The <c>type</c> field controls which service interface is instantiated:
+/// - "transform"  (default): pure ITransformService — property-array-in / property-array-out
+/// - "composite":             ICompositeService — owns an inner ServiceManager stack, identified by setupName
+/// - "external":              IExternalService  — crosses a system boundary (sensing / actuating)
+/// InputProperties and OutputProperties declare what this entry reads/writes from the outer property store,
+/// allowing the outer ServiceManager to schedule it correctly within execution batches.
 /// </summary>
 public class ServiceConfig
 {
     [JsonPropertyName("name")]
     public required string Name { get; set; }
+
+    /// <summary>
+    /// Service type. Defaults to "transform" if omitted, preserving backward compatibility
+    /// with existing Setup.json files that do not specify a type.
+    /// </summary>
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = "transform";
+
+    /// <summary>
+    /// Name of the inner setup folder in TestFiles/CompositeSetups/.
+    /// Required when type is "composite"; ignored for other types.
+    /// </summary>
+    [JsonPropertyName("setupName")]
+    public string? SetupName { get; set; }
 
     [JsonPropertyName("inputProperties")]
     public required List<string> InputProperties { get; set; }
@@ -80,7 +100,7 @@ public class PropertiesConfiguration
 /// Loaded from JSON files in the ServiceSetups folder.
 /// Execution is organized into batches where all models in a batch can execute in parallel.
 /// </summary>
-public class ServiceSetupConfiguration
+public class CompositeServiceSetup
 {
     [JsonPropertyName("name")]
     public required string Name { get; set; }
@@ -164,7 +184,7 @@ public class ServiceSetupConfiguration
 /// - Setup.json (the setup configuration)
 /// - PropertiesConfig.json (property units and display settings)
 /// </summary>
-public class ServiceSetupLoader
+public class CompositeServiceSetupLoader
 {
     private const string EntityPropertiesConfigFileName = "PropertiesConfig.json";
 
@@ -173,10 +193,10 @@ public class ServiceSetupLoader
     /// The file is expected to be in TestFiles/CompositeSetups/{SetupName}/Setup.json folder.
     /// </summary>
     /// <param name="setupName">Name of the setup folder (e.g., "DefaultSetup", "OrbitalSetup")</param>
-    /// <returns>Parsed ServiceSetupConfiguration</returns>
+    /// <returns>Parsed CompositeServiceSetup</returns>
     /// <exception cref="FileNotFoundException">If the configuration file is not found</exception>
     /// <exception cref="JsonException">If the JSON is invalid</exception>
-    public static ServiceSetupConfiguration LoadConfiguration(string setupName)
+    public static CompositeServiceSetup LoadConfiguration(string setupName)
     {
         if (string.IsNullOrWhiteSpace(setupName))
             throw new ArgumentException("Setup name cannot be null or empty", nameof(setupName));
@@ -215,7 +235,7 @@ public class ServiceSetupLoader
                 ReadCommentHandling = JsonCommentHandling.Skip
             };
 
-            var configuration = JsonSerializer.Deserialize<ServiceSetupConfiguration>(jsonContent, options);
+            var configuration = JsonSerializer.Deserialize<CompositeServiceSetup>(jsonContent, options);
             
             if (configuration == null)
                 throw new JsonException("Configuration deserialization resulted in null");
@@ -232,7 +252,7 @@ public class ServiceSetupLoader
     /// <summary>
     /// Validates the loaded configuration for consistency.
     /// </summary>
-    private static void ValidateConfiguration(ServiceSetupConfiguration config)
+    private static void ValidateConfiguration(CompositeServiceSetup config)
     {
         if (string.IsNullOrWhiteSpace(config.Name))
             throw new InvalidOperationException("Configuration must have a name");
@@ -285,17 +305,28 @@ public class ServiceSetupLoader
             throw new InvalidOperationException($"Models not included in execution batches: {string.Join(", ", missingModels)}");
         }
 
-        // Validate each model
-        foreach (var model in config.Services)
+        // Validate each service entry
+        foreach (var service in config.Services)
         {
-            if (string.IsNullOrWhiteSpace(model.Name))
-                throw new InvalidOperationException("Model must have a name");
+            if (string.IsNullOrWhiteSpace(service.Name))
+                throw new InvalidOperationException("Service entry must have a name");
 
-            if (model.InputProperties == null || model.InputProperties.Count == 0)
-                throw new InvalidOperationException($"Model {model.Name} must have at least one input property");
+            var type = service.Type?.Trim().ToLowerInvariant() ?? "transform";
 
-            if (model.OutputProperties == null || model.OutputProperties.Count == 0)
-                throw new InvalidOperationException($"Model {model.Name} must have at least one output property");
+            if (type == "composite")
+            {
+                if (string.IsNullOrWhiteSpace(service.SetupName))
+                    throw new InvalidOperationException($"Composite service '{service.Name}' must specify a setupName");
+            }
+            else if (type == "transform")
+            {
+                if (service.InputProperties == null || service.InputProperties.Count == 0)
+                    throw new InvalidOperationException($"Transform service '{service.Name}' must have at least one input property");
+
+                if (service.OutputProperties == null || service.OutputProperties.Count == 0)
+                    throw new InvalidOperationException($"Transform service '{service.Name}' must have at least one output property");
+            }
+            // "external" has no additional structural requirements at the config level
         }
     }
 

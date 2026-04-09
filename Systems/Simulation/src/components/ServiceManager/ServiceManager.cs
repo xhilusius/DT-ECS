@@ -1,6 +1,7 @@
 namespace Simulation.ServiceManager;
 
 using System.Text.Json;
+using Simulation.Interfaces;
 using Simulation.TransformExecutor;
 
 /// <summary>
@@ -24,7 +25,7 @@ using Simulation.TransformExecutor;
 /// 
 /// Does not own TransformExecutor - receives it as a reference.
 /// </summary>
-public class ServiceManager
+public class ServiceManager : ICompositeService
 {
     private readonly TransformExecutor _transformExecutor;
     private readonly Dictionary<string, ServiceDescriptor> _services;
@@ -37,6 +38,7 @@ public class ServiceManager
     private int _stepCounter = 0;
     private bool _parallelExecution = false;
     private int _stepDelayMs = 0;
+    private int _simulationSteps = 10;
     
     /// <summary>
     /// Maps each service name to its batch index.
@@ -70,6 +72,29 @@ public class ServiceManager
         _completedServices = new HashSet<string>();
         _availableProperties = new HashSet<string>();
         _currentState = SimulationState.Stopped;
+    }
+
+    /// <summary>
+    /// Executes the inner service pipeline for the configured number of simulation steps.
+    /// Called by the outer ServiceManager when this CompositeService is scheduled in a batch.
+    /// </summary>
+    public async Task ExecuteAsync()
+    {
+        for (int i = 0; i < _simulationSteps; i++)
+            await ExecuteSimulationStepAsync();
+    }
+
+    /// <summary>
+    /// Clears all inner state and reinitializes from a new setup configuration.
+    /// Allows the outer loop to swap inner configurations without recreating this instance.
+    /// </summary>
+    public async Task ReinitializeAsync(string setupName)
+    {
+        if (string.IsNullOrWhiteSpace(setupName))
+            throw new ArgumentException("Setup name cannot be null or empty", nameof(setupName));
+
+        await ClearAllStateAsync();
+        await InitializeAsync(setupName);
     }
 
     /// <summary>
@@ -403,20 +428,21 @@ public class ServiceManager
         try
         {
             // Load the setup configuration from TestFiles/CompositeSetups/{SetupName}/Setup.json
-            var config = ServiceSetupLoader.LoadConfiguration(setupName);
+            var config = CompositeServiceSetupLoader.LoadConfiguration(setupName);
 
             // Load properties configuration (units and visibility settings) from TestFiles/CompositeSetups/{SetupName}/PropertiesConfig.json
-            var propertiesConfig = ServiceSetupLoader.LoadPropertiesConfiguration(setupName);
-            var entityPropertiesConfig = ServiceSetupLoader.LoadEntityPropertiesConfiguration();
+            var propertiesConfig = CompositeServiceSetupLoader.LoadPropertiesConfiguration(setupName);
+            var entityPropertiesConfig = CompositeServiceSetupLoader.LoadEntityPropertiesConfiguration();
 
-            // Store the parallel execution setting and step delay
+            // Store the parallel execution setting, step delay, and step count
             _parallelExecution = config.Parallel;
             _stepDelayMs = config.StepDelayMs;
+            _simulationSteps = config.SimulationSteps;
 
             // Create a mapping of model names to their configurations for easy lookup
             var modelConfigMap = config.Services.ToDictionary(m => m.Name, m => m);
 
-            var timeStepSeconds = ServiceSetupLoader.GetTimeStepSeconds(config.TimeStep);
+            var timeStepSeconds = CompositeServiceSetupLoader.GetTimeStepSeconds(config.TimeStep);
             _transformExecutor.GetStateManager().SetPropertiesConfiguration(entityPropertiesConfig, propertiesConfig);
 
             var repositoryManager = _transformExecutor.GetStateManager().GetRepositoryManager();
@@ -433,33 +459,60 @@ public class ServiceManager
                     if (!modelConfigMap.TryGetValue(modelName, out var modelConfig))
                         throw new InvalidOperationException($"Model {modelName} referenced in execution batch but not defined");
 
-                    // Register archetype for this model through RepositoryManager
-                    await repositoryManager.RegisterArchetypeAsync(
-                        modelName,
-                        modelName,
-                        new HashSet<string>(modelConfig.InputProperties),
-                        $"Archetype for {modelName} requiring properties: {string.Join(", ", modelConfig.InputProperties)}"
-                    );
+                    var serviceType = modelConfig.Type?.Trim().ToLowerInvariant() ?? "transform";
 
-                    // Create the model instance
-                    var modelInstance = TransformServiceFactory.CreateModel(modelName, timeStepSeconds);
+                    if (serviceType == "transform")
+                    {
+                        // Register archetype for this model through RepositoryManager
+                        await repositoryManager.RegisterArchetypeAsync(
+                            modelName,
+                            modelName,
+                            new HashSet<string>(modelConfig.InputProperties),
+                            $"Archetype for {modelName} requiring properties: {string.Join(", ", modelConfig.InputProperties)}"
+                        );
 
-                    // Register the model with SimEngine
-                    _transformExecutor.RegisterService(modelInstance);
+                        // Create the model instance
+                        var modelInstance = TransformServiceFactory.CreateModel(modelName, timeStepSeconds);
 
-                    // Create and register the service descriptor
-                    var descriptor = new ServiceDescriptor(
-                        modelName,
-                        modelInstance,
-                        modelConfig.InputProperties,
-                        modelConfig.OutputProperties,
-                        modelConfig.OptionalInputProperties
-                    );
+                        // Register the model with SimEngine
+                        _transformExecutor.RegisterService(modelInstance);
 
-                    RegisterService(descriptor);
+                        // Create and register the service descriptor
+                        var descriptor = new ServiceDescriptor(
+                            modelName,
+                            modelInstance,
+                            modelConfig.InputProperties,
+                            modelConfig.OutputProperties,
+                            modelConfig.OptionalInputProperties
+                        );
 
-                    // Track the batch assignment for this service
-                    _serviceToBatchIndex[modelName] = batchIndex;
+                        RegisterService(descriptor);
+
+                        // Track the batch assignment for this service
+                        _serviceToBatchIndex[modelName] = batchIndex;
+                    }
+                    else if (serviceType == "composite")
+                    {
+                        // Composite service support: inner ServiceManager stack owned by an ICompositeService.
+                        // Registration will be implemented when ICompositeService scheduling is introduced.
+                        throw new NotSupportedException(
+                            $"Composite service '{modelName}' (setupName: '{modelConfig.SetupName}') cannot be registered yet. " +
+                            $"ICompositeService scheduling support is pending.");
+                    }
+                    else if (serviceType == "external")
+                    {
+                        // External service support: IExternalService crosses the system boundary.
+                        // Registration will be implemented when IExternalService scheduling is introduced.
+                        throw new NotSupportedException(
+                            $"External service '{modelName}' cannot be registered yet. " +
+                            $"IExternalService scheduling support is pending.");
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException(
+                            $"Unknown service type '{modelConfig.Type}' for service '{modelName}'. " +
+                            $"Supported types: transform, composite, external.");
+                    }
                 }
             }
         }
