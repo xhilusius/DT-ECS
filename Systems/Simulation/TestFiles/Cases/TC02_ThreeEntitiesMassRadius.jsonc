@@ -1,0 +1,20 @@
+{
+  "name": "Three entities: mass and radius variations",
+  "configurationFile": "DefaultSetup",
+  "description": "Three entities with different mass/radius combinations showing terminal velocity differences",
+  "headerLines": [
+    "TEST CASE 2: Three Entities - Mass & Radius Variations",
+    "E1 & E2: same mass, different radius",
+    "E2 & E3: same radius, different mass"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Ball_GravityDrag", "properties": { "Position": [-3, 50, 0], "Color": "Blue", "Mass": 0.5, "Radius": 0.4 } },
+        { "type": "spawn", "entity": "Ball_GravityDrag", "properties": { "Position": [0, 50, 0], "Color": "Cyan", "Mass": 0.5, "Radius": 0.6 } },
+        { "type": "spawn", "entity": "Ball_GravityDrag", "properties": { "Position": [3, 50, 0], "Color": "Yellow", "Mass": 2.0, "Radius": 0.6 } }
+      ]
+    }
+  ]
+}

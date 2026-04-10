@@ -1,0 +1,23 @@
+{
+  "name": "Combined forces: gravity only, gravity+magnetism, gravity+wind, gravity+magnetism+wind",
+  "configurationFile": "DefaultSetup",
+  "description": "Four entities with identical size/mass but different force combinations: gravity-only, gravity+magnetism, gravity+wind, gravity+magnetism+wind",
+  "headerLines": [
+    "TEST CASE 6: Combined Forces - Force Composition",
+    "Entity 1: gravity only (downward)",
+    "Entity 2: gravity + magnetism (upward magnetic force)",
+    "Entity 3: gravity + wind (horizontal wind push)",
+    "Entity 4: gravity + magnetism + wind (all forces)"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Ball_GravityDrag", "properties": { "Position": [-4, 50, 0], "Color": "Red", "Mass": 1.0, "Radius": 0.3 } },
+        { "type": "spawn", "entity": "Ball_GravityDragMagnetism", "properties": { "Position": [-1, 50, 0], "Color": "Gold", "Mass": 1.0, "Radius": 0.3 } },
+        { "type": "spawn", "entity": "Ball_GravityDragWind", "properties": { "Position": [1, 50, 0], "Color": "Cyan", "Mass": 1.0, "Radius": 0.3 } },
+        { "type": "spawn", "entity": "Ball_GravityDragMagnetismWind", "properties": { "Position": [4, 50, 0], "Color": "Lime", "Mass": 1.0, "Radius": 0.3 } }
+      ]
+    }
+  ]
+}

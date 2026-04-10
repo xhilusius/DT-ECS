@@ -1,0 +1,21 @@
+{
+  "name": "Wind effect + Earth: large radius vs small radius with N-body gravity",
+  "configurationFile": "NBodySetup",
+  "description": "Two entities with same mass under N-body gravity: one with large radius (affected by wind), one with small radius (minimal wind effect)",
+  "headerLines": [
+    "TEST CASE 11: Wind Effect + Earth - Large vs Small Radius",
+    "Large ball: N-body gravity + wind (large cross-section)",
+    "Small ball: N-body gravity + minimal wind (small cross-section)"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Earth" },
+        { "type": "spawn", "entity": "EarthSurface" },
+        { "type": "spawn", "entity": "Ball_GravityDragWind", "properties": { "Position": [-2, 6.37105e6, 0], "Color": "DeepSkyBlue", "Mass": 1.0, "Radius": 1.0 } },
+        { "type": "spawn", "entity": "Ball_GravityDragWind", "properties": { "Position": [2, 6.37105e6, 0], "Color": "Turquoise", "Mass": 1.0, "Radius": 0.5 } }
+      ]
+    }
+  ]
+}

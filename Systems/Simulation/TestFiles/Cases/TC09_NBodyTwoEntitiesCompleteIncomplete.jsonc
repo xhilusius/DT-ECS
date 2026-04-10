@@ -1,0 +1,21 @@
+{
+  "name": "Two entities + Earth: one complete, one incomplete",
+  "configurationFile": "NBodySetup",
+  "description": "Two entities under N-body gravity: one with all properties (simulates), one missing Mass (no behavior)",
+  "headerLines": [
+    "TEST CASE 9: Two Entities + Earth - Complete vs Incomplete",
+    "E1: has all required properties (will simulate)",
+    "E2: missing Mass (will NOT simulate)"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Earth" },
+        { "type": "spawn", "entity": "EarthSurface" },
+        { "type": "spawn", "entity": "Ball_GravityDrag", "properties": { "Position": [-2, 6.37105e6, 0], "Color": "Cyan", "Mass": 1.0, "Radius": 0.2 } },
+        { "type": "spawn", "entity": "Ball_NoMass", "properties": { "Position": [2, 6.37105e6, 0], "Color": "Magenta", "Radius": 0.2 } }
+      ]
+    }
+  ]
+}

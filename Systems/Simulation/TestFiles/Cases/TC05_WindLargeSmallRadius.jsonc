@@ -1,0 +1,19 @@
+{
+  "name": "Wind effect: large radius vs small radius",
+  "configurationFile": "DefaultSetup",
+  "description": "Two entities with same mass: one with large radius (affected by wind), one with small radius (minimal wind effect)",
+  "headerLines": [
+    "TEST CASE 5: Wind Effect - Large vs Small Radius",
+    "Large ball: gravity + wind (large cross-section)",
+    "Small ball: gravity + minimal wind (small cross-section)"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Ball_GravityDragWind", "properties": { "Position": [-2, 50, 0], "Color": "DeepSkyBlue", "Mass": 1.0, "Radius": 1.0 } },
+        { "type": "spawn", "entity": "Ball_GravityDragWind", "properties": { "Position": [2, 50, 0], "Color": "Turquoise", "Mass": 1.0, "Radius": 0.5 } }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "Magnetism: metallic vs non-metallic entities",
+  "configurationFile": "DefaultSetup",
+  "description": "Two entities: one metallic (affected by magnetic field), one non-metallic (gravity only)",
+  "headerLines": [
+    "TEST CASE 4: Magnetism - Metallic vs Non-Metallic",
+    "Metal ball: gravity + magnetic force (upward)",
+    "Plastic ball: gravity only"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Ball_GravityDragMagnetism", "properties": { "Position": [-2, 50, 0], "Color": "Silver", "Mass": 1.0, "Radius": 0.2 } },
+        { "type": "spawn", "entity": "Ball_GravityDrag", "properties": { "Position": [2, 50, 0], "Color": "Orange", "Mass": 1.0, "Radius": 0.2 } }
+      ]
+    }
+  ]
+}

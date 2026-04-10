@@ -1,0 +1,22 @@
+{
+  "name": "Three entities + Earth: N-body mass and radius variations",
+  "configurationFile": "NBodySetup",
+  "description": "Three entities with different mass/radius combinations under N-body gravitational attraction from Earth",
+  "headerLines": [
+    "TEST CASE 8: Three Entities + Earth - N-Body Mass & Radius Variations",
+    "E1 & E2: same mass, different radius",
+    "E2 & E3: same radius, different mass"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Earth" },
+        { "type": "spawn", "entity": "EarthSurface" },
+        { "type": "spawn", "entity": "Ball_GravityDrag", "properties": { "Position": [-3, 6.37105e6, 0], "Color": "Blue", "Mass": 0.5, "Radius": 0.4 } },
+        { "type": "spawn", "entity": "Ball_GravityDrag", "properties": { "Position": [0, 6.37105e6, 0], "Color": "Lime", "Mass": 0.5, "Radius": 0.6 } },
+        { "type": "spawn", "entity": "Ball_GravityDrag", "properties": { "Position": [3, 6.37105e6, 0], "Color": "Yellow", "Mass": 2.0, "Radius": 0.6 } }
+      ]
+    }
+  ]
+}

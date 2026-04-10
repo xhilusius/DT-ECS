@@ -1,0 +1,16 @@
+{
+  "name": "Single entity: gravity and positioning",
+  "configurationFile": "DefaultSetup",
+  "description": "Single entity falling under gravity with terminal velocity",
+  "headerLines": [
+    "TEST CASE 1: Single Entity - Gravity & Positioning"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Ball_GravityOnly", "properties": { "Position": [0, 50, 0], "Color": "Red", "Mass": 1.0, "Radius": 0.2 } }
+      ]
+    }
+  ]
+}

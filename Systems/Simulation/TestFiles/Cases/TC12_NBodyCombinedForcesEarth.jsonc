@@ -1,0 +1,25 @@
+{
+  "name": "Combined forces + Earth: gravity only, gravity+magnetism, gravity+wind, gravity+magnetism+wind with N-body",
+  "configurationFile": "NBodySetup",
+  "description": "Four entities with identical size/mass but different force combinations under N-body gravity: gravity-only, gravity+magnetism, gravity+wind, gravity+magnetism+wind",
+  "headerLines": [
+    "TEST CASE 12: Combined Forces + Earth - Force Composition with N-Body",
+    "Entity 1: N-body gravity only (downward)",
+    "Entity 2: N-body gravity + magnetism (upward magnetic force)",
+    "Entity 3: N-body gravity + wind (horizontal wind push)",
+    "Entity 4: N-body gravity + magnetism + wind (all forces)"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Earth" },
+        { "type": "spawn", "entity": "EarthSurface" },
+        { "type": "spawn", "entity": "Ball_GravityDrag", "properties": { "Position": [-4, 6.37105e6, 0], "Color": "Red", "Mass": 1.0, "Radius": 0.3 } },
+        { "type": "spawn", "entity": "Ball_GravityDragMagnetism", "properties": { "Position": [-1, 6.37105e6, 0], "Color": "Gold", "Mass": 1.0, "Radius": 0.3 } },
+        { "type": "spawn", "entity": "Ball_GravityDragWind", "properties": { "Position": [1, 6.37105e6, 0], "Color": "Cyan", "Mass": 1.0, "Radius": 0.3 } },
+        { "type": "spawn", "entity": "Ball_GravityDragMagnetismWind", "properties": { "Position": [4, 6.37105e6, 0], "Color": "Lime", "Mass": 1.0, "Radius": 0.3 } }
+      ]
+    }
+  ]
+}

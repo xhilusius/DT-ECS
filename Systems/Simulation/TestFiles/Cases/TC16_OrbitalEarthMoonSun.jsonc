@@ -1,0 +1,22 @@
+{
+  "name": "Orbital mechanics: Earth-Moon-Sun 3-body system",
+  "configurationFile": "OrbitalSetup",
+  "description": "Moon orbiting Earth while Earth-Moon system orbits the Sun (3-body problem)",
+  "headerLines": [
+    "TEST CASE 16: Orbital Mechanics - Earth-Moon-Sun 3-Body System",
+    "Sun: at origin with zero velocity",
+    "Earth: at 149.6 million km (1 AU) with orbital velocity 29.780 km/s",
+    "Moon: relative to Earth at +384,400 km with combined velocity 30.802 km/s",
+    "Simulation: 4000 steps × 600s = ~27.7 days (observe Moon's perturbed orbit)"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Sun" },
+        { "type": "spawn", "entity": "Earth_ball", "properties": { "Position": [1.496e11, 0, 0], "CurrentSpeed": [0, 29780, 0] } },
+        { "type": "spawn", "entity": "Moon", "properties": { "Position": [1.499844e11, 0, 0], "CurrentSpeed": [0, 30802, 0] } }
+      ]
+    }
+  ]
+}

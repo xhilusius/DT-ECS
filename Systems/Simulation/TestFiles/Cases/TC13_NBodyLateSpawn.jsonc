@@ -1,0 +1,26 @@
+{
+  "name": "N-body gravity: late spawn",
+  "configurationFile": "NBodySetup",
+  "description": "N-body gravity only with one ball at start and a second ball spawned mid-simulation",
+  "headerLines": [
+    "TEST CASE 13: N-Body Gravity - Late Spawn",
+    "Ball 1: spawned at step 0",
+    "Ball 2: spawned at step 100"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Earth" },
+        { "type": "spawn", "entity": "EarthSurface" },
+        { "type": "spawn", "entity": "Ball_GravityDrag", "properties": { "Position": [-1, 6.37105e6, 0], "Color": "Red", "Mass": 1.0, "Radius": 0.2 } }
+      ]
+    },
+    {
+      "step": 100,
+      "actions": [
+        { "type": "spawn", "entity": "Ball_GravityDrag", "properties": { "Position": [1, 6.37105e6, 0], "Color": "Blue", "Mass": 1.0, "Radius": 0.25 } }
+      ]
+    }
+  ]
+}

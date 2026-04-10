@@ -68,6 +68,26 @@
       }
     },
 
+    // ===== SATELLITES =====
+    // Satellite entities for orbital simulation and Digital Twin collision avoidance scenarios.
+    // Each instance overrides Position and CurrentSpeed in the test case definition.
+    // Only gravitational force applies at orbital scale; drag is omitted (negligible in target orbits).
+    // Radius represents the collision detection zone, not the physical body size.
+    "Satellite": {
+      "name": "Satellite",
+      "description": "Generic satellite in Earth orbit — gravity only. Override Position and CurrentSpeed per instance.",
+      "properties": {
+        "Mass": 500.0,
+        "Position": [0, 0, 0],
+        "Displacement": [0, 0, 0],
+        "CurrentSpeed": [0, 0, 0],
+        "Radius": 50.0,
+        "GravityForce": [0, 0, 0],
+        "Visualize": true,
+        "Color": "White"
+      }
+    },
+
     // ===== BALLS: Force composition only =====
     "Ball_GravityOnly": {
       "name": "Ball",

@@ -1,0 +1,20 @@
+{
+  "name": "Orbital mechanics: Moon-Earth 2-body system",
+  "configurationFile": "OrbitalSetup",
+  "description": "Moon orbiting Earth in a stable elliptical orbit over ~27.7 days",
+  "headerLines": [
+    "TEST CASE 15: Orbital Mechanics - Moon-Earth 2-Body System",
+    "Earth: at origin with zero velocity",
+    "Moon: at 384,400 km with tangential velocity 1,022 m/s",
+    "Simulation: 4000 steps × 600s = ~27.7 days (one lunar orbit)"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Earth_ball" },
+        { "type": "spawn", "entity": "Moon" }
+      ]
+    }
+  ]
+}

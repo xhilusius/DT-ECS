@@ -13,10 +13,10 @@ public static class TestCases
 {
     public record TestCase(string Name, TestSetup Setup, Func<IInteractionController, StateManager, Task> ExecutionLogic);
 
-    private record TestCaseConfigFile
+    private record TestCaseIndexFile
     {
         [JsonPropertyName("testCases")]
-        public required List<TestCaseConfig> TestCases { get; init; }
+        public required List<string> TestCases { get; init; }
     }
 
     private record TestCaseConfig
@@ -109,9 +109,35 @@ public static class TestCases
 
     private static IReadOnlyList<TestCase> LoadAll()
     {
-        var configFile = LoadConfigFile();
+        var indexPath = GetTestCasesPath();
+        var index = LoadIndexFile(indexPath);
         var entityLibrary = LoadEntityDefinitions();
-        return configFile.TestCases.Select(test => BuildTestCase(test, entityLibrary)).ToList();
+        var testFilesFolder = Path.GetDirectoryName(indexPath)!;
+        return index.TestCases
+            .Select(relativePath => LoadSingleTestCaseFile(
+                Path.GetFullPath(Path.Combine(testFilesFolder, relativePath)),
+                entityLibrary))
+            .ToList();
+    }
+
+    private static TestCase LoadSingleTestCaseFile(string filePath, IReadOnlyDictionary<string, EntityDefinition> entityLibrary)
+    {
+        if (!File.Exists(filePath))
+            throw new FileNotFoundException($"Test case file not found: {filePath}");
+
+        string jsonContent = File.ReadAllText(filePath);
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            AllowTrailingCommas = true,
+            ReadCommentHandling = JsonCommentHandling.Skip
+        };
+
+        var config = JsonSerializer.Deserialize<TestCaseConfig>(jsonContent, options);
+        if (config == null)
+            throw new JsonException($"Test case deserialization resulted in null for: {filePath}");
+
+        return BuildTestCase(config, entityLibrary);
     }
 
     private static TestCase BuildTestCase(TestCaseConfig config, IReadOnlyDictionary<string, EntityDefinition> entityLibrary)
@@ -377,14 +403,12 @@ public static class TestCases
         Console.WriteLine(bottom + "\n");
     }
 
-    private static TestCaseConfigFile LoadConfigFile()
+    private static TestCaseIndexFile LoadIndexFile(string indexPath)
     {
-        string configPath = GetTestCasesPath();
+        if (!File.Exists(indexPath))
+            throw new FileNotFoundException($"Test cases index file not found: {indexPath}");
 
-        if (!File.Exists(configPath))
-            throw new FileNotFoundException($"Test cases configuration file not found: {configPath}");
-
-        string jsonContent = File.ReadAllText(configPath);
+        string jsonContent = File.ReadAllText(indexPath);
         var options = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
@@ -392,11 +416,11 @@ public static class TestCases
             ReadCommentHandling = JsonCommentHandling.Skip
         };
 
-        var configFile = JsonSerializer.Deserialize<TestCaseConfigFile>(jsonContent, options);
-        if (configFile == null)
-            throw new JsonException("Test cases deserialization resulted in null");
+        var indexFile = JsonSerializer.Deserialize<TestCaseIndexFile>(jsonContent, options);
+        if (indexFile == null)
+            throw new JsonException("Test cases index deserialization resulted in null");
 
-        return configFile;
+        return indexFile;
     }
 
     private static string GetTestCasesPath()
@@ -429,7 +453,7 @@ public static class TestCases
             assemblyFolder,
             "..", "..", "..",
             "TestFiles",
-            "Entities.jsonc"
+            "EntityTemplates.jsonc"
         );
 
         return Path.GetFullPath(entitiesPath);

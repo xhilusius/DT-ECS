@@ -1,0 +1,32 @@
+{
+  "name": "Entity removal and name reuse",
+  "configurationFile": "NBodySetup",
+  "description": "Demonstrates entity removal freeing up names for reuse",
+  "headerLines": [
+    "TEST CASE 14: Entity Removal & Name Reuse",
+    "Spawn Ball_GravityDrag, remove it, then spawn another Ball_GravityDrag",
+    "Both use the same entity type name (not numbered)"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Ball_GravityDrag", "properties": { "Position": [0, 6.37105e6, 0], "Color": "Red", "Mass": 1.0, "Radius": 0.2 } },
+        { "type": "spawn", "entity": "Earth" },
+        { "type": "spawn", "entity": "EarthSurface" }
+      ]
+    },
+    {
+      "step": 100,
+      "actions": [
+        { "type": "remove", "entity": "Ball_GravityDrag", "properties": { "EntityId": 0 } }
+      ]
+    },
+    {
+      "step": 200,
+      "actions": [
+        { "type": "spawn", "entity": "Ball_GravityDrag", "properties": { "Position": [2, 6.37105e6, 0], "Color": "Red", "Mass": 1.0, "Radius": 0.3 } }
+      ]
+    }
+  ]
+}

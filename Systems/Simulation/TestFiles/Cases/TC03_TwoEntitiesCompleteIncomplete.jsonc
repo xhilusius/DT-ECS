@@ -1,0 +1,25 @@
+{
+  "name": "Two entities: one complete, one incomplete",
+  "configurationFile": "DefaultSetup",
+  "description": "Two entities: one with all properties (simulates), one missing Mass (no behavior)",
+  "headerLines": [
+    "TEST CASE 3: Two Entities - Complete vs Incomplete",
+    "E1: has all required properties (will simulate)",
+    "E2: missing Mass (will NOT simulate)"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Ball_GravityDrag", "properties": { "Position": [-2, 50, 0], "Color": "Cyan", "Mass": 1.0, "Radius": 0.2 } },
+        { "type": "spawn", "entity": "Ball_NoMass", "properties": { "Position": [2, 50, 0], "Color": "Magenta", "Radius": 0.2 } }
+      ]
+    },
+    {
+      "step": 50,
+      "actions": [
+        { "type": "remove", "entity": "Ball_NoMass", "properties": { "EntityId": 1 } }
+      ]
+    }
+  ]
+}

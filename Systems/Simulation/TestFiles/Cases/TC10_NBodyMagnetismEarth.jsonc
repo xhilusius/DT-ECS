@@ -1,0 +1,21 @@
+{
+  "name": "Magnetism + Earth: metallic vs non-metallic entities with N-body gravity",
+  "configurationFile": "NBodySetup",
+  "description": "Two entities under N-body gravity: one metallic (affected by magnetic field), one non-metallic (gravity only)",
+  "headerLines": [
+    "TEST CASE 10: Magnetism + Earth - Metallic vs Non-Metallic",
+    "Metal ball: N-body gravity + magnetic force (upward)",
+    "Plastic ball: N-body gravity only"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Earth" },
+        { "type": "spawn", "entity": "EarthSurface" },
+        { "type": "spawn", "entity": "Ball_GravityDragMagnetism", "properties": { "Position": [-2, 6.37105e6, 0], "Color": "Silver", "Mass": 1.0, "Radius": 0.2 } },
+        { "type": "spawn", "entity": "Ball_GravityDrag", "properties": { "Position": [2, 6.37105e6, 0], "Color": "Orange", "Mass": 1.0, "Radius": 0.2 } }
+      ]
+    }
+  ]
+}
