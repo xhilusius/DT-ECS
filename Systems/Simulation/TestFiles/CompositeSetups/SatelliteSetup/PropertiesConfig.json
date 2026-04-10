@@ -1,0 +1,26 @@
+{
+  "propertyUnits": {
+    "Mass": "kg",
+    "Position": "km",
+    "Displacement": "km",
+    "CurrentSpeed": "km/s",
+    "Radius": "m",
+    "GravityForce": "kN",
+    "CollisionDetected": ""
+  },
+  "propertyVisibility": {
+    "alwaysShow": [
+      "Position",
+      "CurrentSpeed",
+      "GravityForce",
+      "CollisionDetected"
+    ],
+    "showOnce": [
+      "Mass",
+      "Radius"
+    ],
+    "intermediate": [
+      "Displacement"
+    ]
+  }
+}

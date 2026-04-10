@@ -30,6 +30,7 @@ public class TransformServiceFactory
             "WindForceModel" => new WindForceModel(),
             "PhysicsIntegrator" => new PhysicsIntegrator(timeStepSeconds),
             "PositionModel" => new PositionModel(),
+            "CollisionDetectionModel" => new CollisionDetectionModel(),
             _ => throw new ArgumentException($"Unknown simulation model: {modelName}")
         };
     }

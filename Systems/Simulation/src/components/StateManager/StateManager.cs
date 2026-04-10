@@ -3,6 +3,7 @@ namespace Simulation.StateManager;
 using System.Numerics;
 using DataStorage.Interfaces;
 using Simulation.EntityManager;
+using Simulation.PropertyTypes;
 
 // MVP DEPENDENCY: VisualizationMapper for external visualization tool integration
 // This dependency is OPTIONAL and LOOSELY COUPLED:
@@ -414,6 +415,7 @@ public class StateManager
 
         return value switch
         {
+            IPropertyValue pv => pv.GetPrintable(),
             Vector3 v => $"({v.X:F6}, {v.Y:F6}, {v.Z:F6})",
             double[] arr when arr.Length == 3 => $"({arr[0]:F6}, {arr[1]:F6}, {arr[2]:F6})",
             float f => f.ToString("F6"),

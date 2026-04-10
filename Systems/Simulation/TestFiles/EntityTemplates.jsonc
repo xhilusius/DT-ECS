@@ -83,6 +83,7 @@
         "CurrentSpeed": [0, 0, 0],
         "Radius": 50.0,
         "GravityForce": [0, 0, 0],
+        "CollisionDetected": false,
         "Visualize": true,
         "Color": "White"
       }

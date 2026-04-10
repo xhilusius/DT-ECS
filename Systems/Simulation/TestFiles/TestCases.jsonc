@@ -18,6 +18,7 @@
     "Cases/TC13_NBodyLateSpawn.jsonc",
     "Cases/TC14_EntityRemovalNameReuse.jsonc",
     "Cases/TC15_OrbitalMoonEarth.jsonc",
-    "Cases/TC16_OrbitalEarthMoonSun.jsonc"
+    "Cases/TC16_OrbitalEarthMoonSun.jsonc",
+    "Cases/TC17_SatelliteCollisionSingle.jsonc"
   ]
 }
