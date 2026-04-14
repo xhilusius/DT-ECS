@@ -95,5 +95,12 @@ public interface IInteractionController
     /// <param name="entityId">The entity to inspect</param>
     void InspectEntity(int entityId);
 
+    /// <summary>
+    /// Returns the <see cref="IInnerServiceFactory"/> provided by the owning ServiceManager.
+    /// Composite services and test orchestration use this to create isolated inner
+    /// simulation stacks without depending on any concrete infrastructure type.
+    /// </summary>
+    IInnerServiceFactory GetInnerServiceFactory();
+
     #endregion
 }

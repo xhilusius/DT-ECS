@@ -1,7 +1,10 @@
 namespace Simulation.ServiceManager;
 
 using System.Text.Json;
+using DataStorage.RepositoryManager;
+using Simulation.EntityManager;
 using Simulation.Interfaces;
+using Simulation.StateManager;
 using Simulation.TransformExecutor;
 
 /// <summary>
@@ -25,7 +28,7 @@ using Simulation.TransformExecutor;
 /// 
 /// Does not own TransformExecutor - receives it as a reference.
 /// </summary>
-public class ServiceManager : ICompositeService
+public class ServiceManager : IInnerServiceFactory
 {
     private readonly TransformExecutor _transformExecutor;
     private readonly Dictionary<string, ServiceDescriptor> _services;
@@ -75,29 +78,6 @@ public class ServiceManager : ICompositeService
     }
 
     /// <summary>
-    /// Executes the inner service pipeline for the configured number of simulation steps.
-    /// Called by the outer ServiceManager when this CompositeService is scheduled in a batch.
-    /// </summary>
-    public async Task ExecuteAsync()
-    {
-        for (int i = 0; i < _simulationSteps; i++)
-            await ExecuteSimulationStepAsync();
-    }
-
-    /// <summary>
-    /// Clears all inner state and reinitializes from a new setup configuration.
-    /// Allows the outer loop to swap inner configurations without recreating this instance.
-    /// </summary>
-    public async Task ReinitializeAsync(string setupName)
-    {
-        if (string.IsNullOrWhiteSpace(setupName))
-            throw new ArgumentException("Setup name cannot be null or empty", nameof(setupName));
-
-        await ClearAllStateAsync();
-        await InitializeAsync(setupName);
-    }
-
-    /// <summary>
     /// Asynchronously initializes services by loading configuration from a setup folder.
     /// Must be called after construction to set up services.
     /// </summary>
@@ -108,6 +88,29 @@ public class ServiceManager : ICompositeService
             throw new ArgumentException("Setup name cannot be null or empty", nameof(setupName));
 
         await InitializeServicesFromConfigurationAsync(setupName);
+    }
+
+    /// <inheritdoc/>
+    public async Task<IInnerService> CreateInnerServiceAsync(string setupName)
+    {
+        if (string.IsNullOrWhiteSpace(setupName))
+            throw new ArgumentException("Setup name cannot be null or empty", nameof(setupName));
+
+        var repositoryManager = new RepositoryManager();
+        var entityManager = new EntityManager();
+        var stateManager = new StateManager(repositoryManager, entityManager);
+        entityManager.SetStateManager(stateManager);
+        stateManager.SilentMode = true;
+
+        var transformExecutor = new TransformExecutor(stateManager);
+        var innerServiceManager = new ServiceManager(transformExecutor);
+        await innerServiceManager.InitializeAsync(setupName);
+
+        var controller = new global::Simulation.InteractionController.InteractionController(
+            innerServiceManager, entityManager);
+
+        var setup = CompositeServiceSetupLoader.LoadConfiguration(setupName);
+        return new InnerService(controller, setup.SimulationSteps);
     }
 
     /// <summary>

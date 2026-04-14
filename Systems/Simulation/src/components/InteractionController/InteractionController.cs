@@ -53,6 +53,12 @@ public class InteractionController : IInteractionController
         return _entityManager;
     }
 
+    /// <inheritdoc/>
+    public IInnerServiceFactory GetInnerServiceFactory()
+    {
+        return _serviceManager;
+    }
+
     /// <summary>
     /// 1) START: Starts the simulation.
     /// Executes the simulation loop continuously until Pause() or Stop() is called.

@@ -47,6 +47,13 @@ public class StateManager
     private HashSet<string>? _intermediateProperties;
     private bool _isFirstReport = true;
 
+    /// <summary>
+    /// When true, suppresses all console output from <see cref="ReportStateAsync"/>.
+    /// Set by <see cref="IInnerServiceFactory"/> on inner simulation instances so
+    /// inner simulation steps do not pollute the outer simulation's console output.
+    /// </summary>
+    public bool SilentMode { get; set; } = false;
+
 
     public StateManager(IRepositoryManager repositoryManager, EntityManager entityManager, VisualizationMapper? visualizationMapper = null)
     {
@@ -325,6 +332,8 @@ public class StateManager
     /// </summary>
     public async Task ReportStateAsync(string stepDescription = "Simulation Step")
     {
+        if (SilentMode) return;
+
         try
         {
             var allProperties = await _repositoryManager.GetAllPropertiesAsync();

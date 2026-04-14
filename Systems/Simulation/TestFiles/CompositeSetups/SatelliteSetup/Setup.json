@@ -6,7 +6,7 @@
     "unit": "s"
   },
   "parallel": false,
-  "stepDelayMs": 5,
+  "stepDelayMs": 2,
   "simulationSteps": 1500,
 
   "simulationModels": [

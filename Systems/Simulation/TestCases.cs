@@ -6,8 +6,10 @@ using System.IO;
 using System.Linq;
 using Simulation;
 using Simulation.Interfaces;
+using Simulation.PropertyTypes;
 using Simulation.StateManager;
 using Simulation.ServiceManager;
+using Simulation.ServiceManager.CompositeServices;
 
 public static class TestCases
 {
@@ -113,11 +115,13 @@ public static class TestCases
         var index = LoadIndexFile(indexPath);
         var entityLibrary = LoadEntityDefinitions();
         var testFilesFolder = Path.GetDirectoryName(indexPath)!;
-        return index.TestCases
+        var jsonCases = index.TestCases
             .Select(relativePath => LoadSingleTestCaseFile(
                 Path.GetFullPath(Path.Combine(testFilesFolder, relativePath)),
                 entityLibrary))
             .ToList();
+
+        return jsonCases.Append(BuildTC18(entityLibrary)).ToList();
     }
 
     private static TestCase LoadSingleTestCaseFile(string filePath, IReadOnlyDictionary<string, EntityDefinition> entityLibrary)
@@ -457,5 +461,173 @@ public static class TestCases
         );
 
         return Path.GetFullPath(entitiesPath);
+    }
+
+    // -------------------------------------------------------------------------
+    // TC18 — What-If: Collision analysis, 100-satellite constellation
+    // -------------------------------------------------------------------------
+    // Driven programmatically rather than from JSON because ScenarioConfig contains
+    // typed C# objects (BaseEntitySnapshot lists) that cannot be expressed in the
+    // simple JSON test-case format.
+    // -------------------------------------------------------------------------
+
+    private static TestCase BuildTC18(IReadOnlyDictionary<string, EntityDefinition> entityLibrary)
+    {
+        const double R = 6_771_000; // LEO at 400 km altitude (m)
+        const double V = 7_672;     // Circular orbital speed (m/s)
+        const double DetRadius = 10_000; // 10 km detection zone — matches TC17
+
+        var setup = new TestSetup
+        {
+            ConfigurationFile = "SatelliteSetup",
+            Description = "What-If collision analysis: 100-satellite LEO constellation vs N candidate insertion orbits",
+            Steps = new List<TestStepDefinition>()
+        };
+
+        return new TestCase(
+            "TC18: What-If — 100-Sat Constellation, N Candidate Orbits",
+            setup,
+            async (controller, stateManager) =>
+            {
+                PrintBanner(new[]
+                {
+                    "TEST CASE 18: What-If — Satellite Constellation Collision Analysis",
+                    "Constellation: Earth + 100 LEO satellites (400 km, evenly spaced, CCW)",
+                    "Candidate:     1 CW satellite inserted at 5 different start positions",
+                    "Detection:     Radius=10,000 m each (20 km combined zone)",
+                    "Inner sim:     SatelliteSetup — 1,500 steps at 1 s/step (silent)",
+                    "Outer sim:     WhatIfService driven directly — no outer loop",
+                });
+
+                try
+                {
+                    // ----------------------------------------------------------
+                    // Build base-entity snapshots from the entity library.
+                    // The outer store is NOT used — snapshots are built directly
+                    // from known spawn data so no outer store reading is needed.
+                    // ----------------------------------------------------------
+
+                    var earthDef = entityLibrary["Earth_ball"];
+                    var satDef   = entityLibrary["Satellite"];
+
+                    var baseEntities = new List<BaseEntitySnapshot>();
+
+                    // Earth
+                    baseEntities.Add(new BaseEntitySnapshot(
+                        earthDef.Name,
+                        earthDef.Description,
+                        new Dictionary<string, object>(earthDef.Properties)));
+
+                    // 100 satellites evenly spread around the orbit, travelling CCW
+                    for (int i = 0; i < 100; i++)
+                    {
+                        double angle = i * 2 * Math.PI / 100;
+                        double px = R * Math.Cos(angle);
+                        double py = R * Math.Sin(angle);
+                        double vx = -V * Math.Sin(angle);
+                        double vy =  V * Math.Cos(angle);
+
+                        var props = new Dictionary<string, object>(satDef.Properties)
+                        {
+                            ["Position"]         = new double[] { px, py, 0 },
+                            ["CurrentSpeed"]     = new double[] { vx, vy, 0 },
+                            ["Radius"]           = (float)DetRadius,
+                            ["CollisionDetected"] = false,
+                            ["Color"]            = Color.Cyan,
+                        };
+                        baseEntities.Add(new BaseEntitySnapshot($"Sat_{i}", null, props));
+                    }
+
+                    // ----------------------------------------------------------
+                    // Define N candidate scenarios — each a CW satellite starting
+                    // at a different orbital angle, varying speed in two cases.
+                    // ----------------------------------------------------------
+
+                    var scenarios = new[]
+                    {
+                        (Label: "CW at   0° (head-on with Sat_0)",
+                         Pos: new double[] { R, 0, 0 },
+                         Spd: new double[] { 0, -V, 0 }),
+
+                        (Label: "CW at  90° (head-on with Sat_25)",
+                         Pos: new double[] { 0, R, 0 },
+                         Spd: new double[] { V, 0, 0 }),
+
+                        (Label: "CW at 180° (mirrors TC17)",
+                         Pos: new double[] { -R, 0, 0 },
+                         Spd: new double[] { 0, V, 0 }),
+
+                        (Label: "CW at 270° (head-on with Sat_75)",
+                         Pos: new double[] { 0, -R, 0 },
+                         Spd: new double[] { -V, 0, 0 }),
+
+                        (Label: "CW at   0°, 5% faster (v=8056 m/s)",
+                         Pos: new double[] { R, 0, 0 },
+                         Spd: new double[] { 0, -V * 1.05, 0 }),
+                    };
+
+                    // ----------------------------------------------------------
+                    // Build entity templates dict for WhatIfService.
+                    // Converts EntityDefinition → Dictionary<string, object>.
+                    // ----------------------------------------------------------
+
+                    var templates = entityLibrary.ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => new Dictionary<string, object>(kvp.Value.Properties));
+
+                    // ----------------------------------------------------------
+                    // Create and populate WhatIfService directly.
+                    // The outer ServiceManager is not involved in what-if dispatch
+                    // yet — WhatIfService is driven from the test lambda.
+                    // ----------------------------------------------------------
+
+                    var factory = controller.GetInnerServiceFactory();
+                    var whatIfService = new WhatIfService(factory, templates);
+                    await whatIfService.InitializeAsync("SatelliteSetup");
+
+                    for (int i = 0; i < scenarios.Length; i++)
+                    {
+                        var s = scenarios[i];
+                        var overrides = new Dictionary<string, object>
+                        {
+                            ["Position"]          = s.Pos,
+                            ["CurrentSpeed"]      = s.Spd,
+                            ["Radius"]            = (float)DetRadius,
+                            ["CollisionDetected"] = false,
+                            ["Color"]             = Color.Red,
+                        };
+                        var spawn  = new ScenarioEntitySpawn("Satellite", overrides);
+                        var config = new ScenarioConfig("SatelliteSetup", baseEntities, new[] { spawn });
+                        whatIfService.Scenarios[i + 1] = config;
+                    }
+
+                    Console.WriteLine($"Running {scenarios.Length} what-if scenarios (inner sims are silent)...\n");
+                    await whatIfService.ExecuteAsync();
+
+                    // ----------------------------------------------------------
+                    // Print results
+                    // ----------------------------------------------------------
+
+                    Console.WriteLine("╔══════════════════════════════════════════════════════════════╗");
+                    Console.WriteLine("║ WHAT-IF RESULTS                                              ║");
+                    Console.WriteLine("╠══════════════════════════════════════════════════════════════╣");
+                    for (int i = 0; i < scenarios.Length; i++)
+                    {
+                        var label  = scenarios[i].Label;
+                        var result = whatIfService.Results.TryGetValue(i + 1, out var r) ? r : null;
+                        var status = result?.GetPrintable() ?? "(no result)";
+                        Console.WriteLine($"║ [{i + 1}] {label}");
+                        Console.WriteLine($"║     → {status}");
+                    }
+                    Console.WriteLine("╚══════════════════════════════════════════════════════════════╝");
+
+                    Console.WriteLine("\n✓ Test case completed successfully!\n");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"✗ Test case failed: {ex.Message}");
+                    Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+                }
+            });
     }
 }
