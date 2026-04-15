@@ -1,6 +1,7 @@
 {
   "name": "Magnetism + Earth: metallic vs non-metallic entities with N-body gravity",
-  "configurationFile": "NBodySetup",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "NBodySetup",
   "description": "Two entities under N-body gravity: one metallic (affected by magnetic field), one non-metallic (gravity only)",
   "headerLines": [
     "TEST CASE 10: Magnetism + Earth - Metallic vs Non-Metallic",

@@ -1,0 +1,31 @@
+{
+  "name": "Standard Simulation Run",
+  "description": "Outer orchestration composite: sense environment (batch 0), run the inner physics simulation (batch 1), actuate outputs (batch 2). simulationSteps controls how many times this outer loop repeats — 1 for all standard test cases.",
+  "timeStep": {
+    "value": 1,
+    "unit": "s"
+  },
+  "parallel": false,
+  "stepDelayMs": 0,
+  "simulationSteps": 1,
+
+  "simulationModels": [
+    {
+      "name": "SensingService",
+      "type": "external"
+    },
+    {
+      "name": "TestSimulationService",
+      "type": "composite"
+    },
+    {
+      "name": "ActuatingService",
+      "type": "external"
+    }
+  ],
+  "executionBatches": [
+    ["SensingService"],
+    ["TestSimulationService"],
+    ["ActuatingService"]
+  ]
+}

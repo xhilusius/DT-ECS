@@ -1,74 +1,47 @@
 namespace Simulation;
 
-using DataStorage.RepositoryManager;
-using Simulation.EntityManager;
-using Simulation.ServiceManager;
+using EM = Simulation.EntityManager.EntityManager;
+using IC = Simulation.InteractionController.InteractionController;
+using RM = DataStorage.RepositoryManager.RepositoryManager;
+using Simulation.ServiceManager.CompositeServices;
+using SM = Simulation.ServiceManager.ServiceManager;
+using ST = Simulation.StateManager.StateManager;
+using TE = Simulation.TransformExecutor.TransformExecutor;
 using Simulation.StateManager;
-using Simulation.InteractionController;
 
 /// <summary>
-/// Responsible for creating and initializing all simulation components from test setup data.
-/// This ensures components are created with their data upfront when a test runs,
-/// rather than initialized eagerly at application startup.
+/// Builds and wires the full simulation stack for a given test case file.
 /// </summary>
 public static class SimulationInitializer
 {
     /// <summary>
-    /// Creates and initializes all simulation components from a test setup definition.
-    /// Components receive their data at initialization time.
-    /// Connects visualization mapper so entities are sent to external tools (Godot, etc) immediately.
+    /// Creates and wires all simulation components for the test case at <paramref name="tcFilePath"/>.
     /// </summary>
-    /// <param name="testSetup">The test setup definition containing configuration and entity data</param>
-    /// <param name="visualizationMapper">Optional visualization mapper for sending updates to external tools</param>
-    /// <param name="configurationFileOverride">Optional configuration file to use instead of the one in testSetup</param>
-    /// <returns>InteractionController ready to run the simulation</returns>
-    public static async Task<global::Simulation.InteractionController.InteractionController> InitializeFromTestSetupAsync(
-        TestSetup testSetup,
-        Simulation.StateManager.VisualizationMapper? visualizationMapper = null,
-        string? configurationFileOverride = null)
+    /// <param name="tcFilePath">Absolute path to the .jsonc test case file.</param>
+    /// <param name="visualizationMapper">Optional visualization mapper (Godot, Unity, etc.).</param>
+    /// <param name="innerSetupOverride">Optional override for the inner physics setup declared in the TC file.</param>
+    /// <returns>An <see cref="IC"/> ready to run via <c>RunAsync()</c>.</returns>
+    public static async Task<IC> CreateAsync(
+        string tcFilePath,
+        VisualizationMapper? visualizationMapper = null,
+        string? innerSetupOverride = null)
     {
-        var effectiveConfigFile = configurationFileOverride ?? testSetup.ConfigurationFile;
-        
-        Console.WriteLine("╔═════════════════════════════════════════════════════════════╗");
-        Console.WriteLine("║              INITIALIZING SIMULATION COMPONENTS             ║");
-        Console.WriteLine("╚═════════════════════════════════════════════════════════════╝\n");
-
-        Console.WriteLine($"📄 Test: {testSetup.Description}");
-        Console.WriteLine($"⚙️  Configuration: {effectiveConfigFile}");
-        Console.WriteLine("🎯 Entities to create: via step actions\n");
-
-        // ===== STEP 1: Initialize the dependency hierarchy =====
-        Console.WriteLine("[1/6] Initializing Data Storage Layer...");
-        var repositoryManager = new global::DataStorage.RepositoryManager.RepositoryManager();
-
-        Console.WriteLine("[2/6] Initializing Entity Manager...");
-        var entityManager = new global::Simulation.EntityManager.EntityManager();
-
-        Console.WriteLine("[3/6] Initializing State Manager...");
-        var stateManager = new global::Simulation.StateManager.StateManager(repositoryManager, entityManager);
-        
-        // Set StateManager reference in EntityManager (circular dependency resolution)
+        var repositoryManager = new RM();
+        var entityManager     = new EM();
+        var stateManager      = new ST(repositoryManager, entityManager);
         entityManager.SetStateManager(stateManager);
-        
-        // Connect visualization mapper if provided (for Godot, Unity, etc)
+
         if (visualizationMapper != null)
-        {
             stateManager.SetVisualizationMapper(visualizationMapper);
-            Console.WriteLine("   📡 Visualization mapper connected - entities will be sent to external tool");
-        }
 
-        Console.WriteLine("[4/6] Initializing Transform Executor...");
-        var transformExecutor = new global::Simulation.TransformExecutor.TransformExecutor(stateManager);
+        var transformExecutor = new TE(stateManager);
 
-        Console.WriteLine("[5/6] Initializing Service Manager...");
-        var serviceManager = new global::Simulation.ServiceManager.ServiceManager(transformExecutor);
-        await serviceManager.InitializeAsync(effectiveConfigFile);
+        // ServiceManager is passed as IInnerServiceFactory only — no InitializeAsync call here.
+        var serviceManager = new SM(transformExecutor);
 
-        Console.WriteLine("[6/6] Initializing Interaction Controller...");
-        var interactionController = new global::Simulation.InteractionController.InteractionController(serviceManager, entityManager);
+        var executorService = new TestExecutorService(entityManager, serviceManager);
+        await executorService.InitializeAsync(tcFilePath, innerSetupOverride);
 
-        Console.WriteLine("✓ Component hierarchy initialized.\n");
-
-        return interactionController;
+        return new IC(entityManager, executorService);
     }
 }

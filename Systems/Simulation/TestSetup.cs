@@ -10,9 +10,16 @@ using System.Collections.Generic;
 public class TestSetup
 {
     /// <summary>
-    /// Name of the configuration file to load (e.g., "DefaultSetup.json")
+    /// Name of the outer composite setup to use (e.g., "SimulationRunSetup", "WhatIfRunSetup").
+    /// Determines which outer CompositeService pipeline to instantiate.
     /// </summary>
-    public required string ConfigurationFile { get; init; }
+    public required string OuterSetup { get; init; }
+
+    /// <summary>
+    /// Name of the inner composite setup to use (e.g., "DefaultSetup", "NBodySetup").
+    /// Passed to the inner CompositeService (e.g., TestSimulationService) to configure the physics simulation.
+    /// </summary>
+    public required string InnerSetup { get; init; }
 
     /// <summary>
     /// Step-based actions to execute during the test run.

@@ -1,0 +1,31 @@
+{
+  "name": "What-If Simulation Run",
+  "description": "Outer orchestration composite: sense environment (batch 0), run the what-if inner simulation for each scenario entity (batch 1), actuate outputs (batch 2). simulationSteps controls how many scenario iterations the outer loop repeats.",
+  "timeStep": {
+    "value": 1,
+    "unit": "s"
+  },
+  "parallel": false,
+  "stepDelayMs": 0,
+  "simulationSteps": 1,
+
+  "simulationModels": [
+    {
+      "name": "SensingService",
+      "type": "external"
+    },
+    {
+      "name": "WhatIfService",
+      "type": "composite"
+    },
+    {
+      "name": "ActuatingService",
+      "type": "external"
+    }
+  ],
+  "executionBatches": [
+    ["SensingService"],
+    ["WhatIfService"],
+    ["ActuatingService"]
+  ]
+}

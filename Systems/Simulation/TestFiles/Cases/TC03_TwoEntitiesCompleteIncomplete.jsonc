@@ -1,6 +1,7 @@
 {
   "name": "Two entities: one complete, one incomplete",
-  "configurationFile": "DefaultSetup",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "DefaultSetup",
   "description": "Two entities: one with all properties (simulates), one missing Mass (no behavior)",
   "headerLines": [
     "TEST CASE 3: Two Entities - Complete vs Incomplete",

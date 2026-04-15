@@ -42,13 +42,13 @@ public class ServiceConfig
     public string? SetupName { get; set; }
 
     [JsonPropertyName("inputProperties")]
-    public required List<string> InputProperties { get; set; }
+    public List<string>? InputProperties { get; set; }
 
     [JsonPropertyName("optionalInputProperties")]
     public List<string>? OptionalInputProperties { get; set; }
 
     [JsonPropertyName("outputProperties")]
-    public required List<string> OutputProperties { get; set; }
+    public List<string>? OutputProperties { get; set; }
 }
 
 /// <summary>
@@ -313,12 +313,7 @@ public class CompositeServiceSetupLoader
 
             var type = service.Type?.Trim().ToLowerInvariant() ?? "transform";
 
-            if (type == "composite")
-            {
-                if (string.IsNullOrWhiteSpace(service.SetupName))
-                    throw new InvalidOperationException($"Composite service '{service.Name}' must specify a setupName");
-            }
-            else if (type == "transform")
+            if (type == "transform")
             {
                 if (service.InputProperties == null || service.InputProperties.Count == 0)
                     throw new InvalidOperationException($"Transform service '{service.Name}' must have at least one input property");

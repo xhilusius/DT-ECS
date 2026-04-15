@@ -33,8 +33,10 @@ public interface ICompositeService
     /// <summary>
     /// Executes the inner service pipeline.
     /// Reads initial state from the outer store, runs inner scenarios, writes results back.
+    /// Responds to <paramref name="ct"/> cancellation and <paramref name="pauseHandle"/> pause signals
+    /// propagated from the outer execution context.
     /// </summary>
-    Task ExecuteAsync();
+    Task ExecuteAsync(CancellationToken ct, PauseHandle pauseHandle);
 
     /// <summary>
     /// Replaces the inner service configuration without recreating this instance.

@@ -1,6 +1,7 @@
 {
   "name": "Wind effect: large radius vs small radius",
-  "configurationFile": "DefaultSetup",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "DefaultSetup",
   "description": "Two entities with same mass: one with large radius (affected by wind), one with small radius (minimal wind effect)",
   "headerLines": [
     "TEST CASE 5: Wind Effect - Large vs Small Radius",

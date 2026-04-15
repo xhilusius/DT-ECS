@@ -32,6 +32,8 @@ public class ServiceManager : IInnerServiceFactory
 {
     private readonly TransformExecutor _transformExecutor;
     private readonly Dictionary<string, ServiceDescriptor> _services;
+    private readonly Dictionary<string, IExternalService> _externalServices;
+    private readonly Dictionary<string, ICompositeService> _compositeServices;
     private readonly HashSet<string> _completedServices;
     private readonly HashSet<string> _availableProperties;
     private SimulationState _currentState;
@@ -72,6 +74,8 @@ public class ServiceManager : IInnerServiceFactory
 
         _transformExecutor = transformExecutor;
         _services = new Dictionary<string, ServiceDescriptor>();
+        _externalServices = new Dictionary<string, IExternalService>();
+        _compositeServices = new Dictionary<string, ICompositeService>();
         _completedServices = new HashSet<string>();
         _availableProperties = new HashSet<string>();
         _currentState = SimulationState.Stopped;
@@ -91,7 +95,7 @@ public class ServiceManager : IInnerServiceFactory
     }
 
     /// <inheritdoc/>
-    public async Task<IInnerService> CreateInnerServiceAsync(string setupName)
+    public async Task<IInnerService> CreateInnerServiceAsync(string setupName, bool silent = false)
     {
         if (string.IsNullOrWhiteSpace(setupName))
             throw new ArgumentException("Setup name cannot be null or empty", nameof(setupName));
@@ -100,17 +104,34 @@ public class ServiceManager : IInnerServiceFactory
         var entityManager = new EntityManager();
         var stateManager = new StateManager(repositoryManager, entityManager);
         entityManager.SetStateManager(stateManager);
-        stateManager.SilentMode = true;
+        stateManager.SilentMode = silent;
 
         var transformExecutor = new TransformExecutor(stateManager);
         var innerServiceManager = new ServiceManager(transformExecutor);
         await innerServiceManager.InitializeAsync(setupName);
 
-        var controller = new global::Simulation.InteractionController.InteractionController(
-            innerServiceManager, entityManager);
-
         var setup = CompositeServiceSetupLoader.LoadConfiguration(setupName);
-        return new InnerService(controller, setup.SimulationSteps);
+        return new InnerService(innerServiceManager, entityManager, setup.SimulationSteps);
+    }
+
+    /// <summary>
+    /// Registers a pre-built composite service at the given batch index.
+    /// Use this when the caller (e.g., TestExecutorService) builds the service
+    /// programmatically rather than via a Setup.json file.
+    /// </summary>
+    public void RegisterCompositeService(string name, ICompositeService service, int batchIndex)
+    {
+        _compositeServices[name] = service;
+        _serviceToBatchIndex[name] = batchIndex;
+    }
+
+    /// <summary>
+    /// Registers a pre-built external service at the given batch index.
+    /// </summary>
+    public void RegisterExternalService(string name, IExternalService service, int batchIndex)
+    {
+        _externalServices[name] = service;
+        _serviceToBatchIndex[name] = batchIndex;
     }
 
     /// <summary>
@@ -367,12 +388,34 @@ public class ServiceManager : IInnerServiceFactory
         }
 
         // Determine the number of batches
+        if (_serviceToBatchIndex.Count == 0)
+        {
+            int earlyStep;
+            lock (_stateLock) { _stepCounter++; earlyStep = _stepCounter; }
+            await _transformExecutor.GetStateManager().ReportStateAsync($"Simulation step {earlyStep} complete");
+            return;
+        }
+
         int maxBatchIndex = _serviceToBatchIndex.Values.Max();
 
         // Execute each batch sequentially
         for (int currentBatch = 0; currentBatch <= maxBatchIndex; currentBatch++)
         {
-            // Get all services in this batch
+            // Execute external services in this batch (no property-dependency gating)
+            foreach (var (name, service) in _externalServices)
+            {
+                if (_serviceToBatchIndex[name] == currentBatch)
+                    await service.ExecuteAsync();
+            }
+
+            // Execute composite services in this batch, passing cancellation/pause through
+            foreach (var (name, service) in _compositeServices)
+            {
+                if (_serviceToBatchIndex[name] == currentBatch)
+                    await service.ExecuteAsync(CancellationToken.None, new PauseHandle());
+            }
+
+            // Get transform services in this batch
             var servicesInBatch = _services.Values
                 .Where(s => _serviceToBatchIndex[s.ServiceName] == currentBatch)
                 .ToList();
@@ -470,8 +513,8 @@ public class ServiceManager : IInnerServiceFactory
                         await repositoryManager.RegisterArchetypeAsync(
                             modelName,
                             modelName,
-                            new HashSet<string>(modelConfig.InputProperties),
-                            $"Archetype for {modelName} requiring properties: {string.Join(", ", modelConfig.InputProperties)}"
+                            new HashSet<string>(modelConfig.InputProperties ?? []),
+                            $"Archetype for {modelName} requiring properties: {string.Join(", ", modelConfig.InputProperties ?? [])}"
                         );
 
                         // Create the model instance
@@ -484,8 +527,8 @@ public class ServiceManager : IInnerServiceFactory
                         var descriptor = new ServiceDescriptor(
                             modelName,
                             modelInstance,
-                            modelConfig.InputProperties,
-                            modelConfig.OutputProperties,
+                            modelConfig.InputProperties ?? [],
+                            modelConfig.OutputProperties ?? [],
                             modelConfig.OptionalInputProperties
                         );
 
@@ -504,11 +547,9 @@ public class ServiceManager : IInnerServiceFactory
                     }
                     else if (serviceType == "external")
                     {
-                        // External service support: IExternalService crosses the system boundary.
-                        // Registration will be implemented when IExternalService scheduling is introduced.
-                        throw new NotSupportedException(
-                            $"External service '{modelName}' cannot be registered yet. " +
-                            $"IExternalService scheduling support is pending.");
+                        var externalService = ExternalServiceFactory.Create(modelName);
+                        _externalServices[modelName] = externalService;
+                        _serviceToBatchIndex[modelName] = batchIndex;
                     }
                     else
                     {

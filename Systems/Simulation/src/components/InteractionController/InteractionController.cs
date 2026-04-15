@@ -2,47 +2,38 @@ namespace Simulation.InteractionController;
 
 using Simulation.EntityManager;
 using Simulation.Interfaces;
-using Simulation.ServiceManager;
-using Simulation.StateManager;
+using Simulation.ServiceManager.CompositeServices;
 
 /// <summary>
 /// Entry point for user interaction with the Simulation subsystem.
-/// Provides a user-friendly interface for controlling simulation execution and entity management.
-/// Delegates simulation management to ServiceManager.
-/// Delegates all entity and state management to EntityManager.
-/// 
-/// Two main areas of responsibility:
-/// 
-/// 1) SIMULATION CONTROL (5 run modes):
-///    - Start: Execute simulation continuously until stopped
-///    - Stop: Halt execution and reset all state
-///    - Pause: Temporarily halt while preserving state
-///    - Continue: Resume from paused state
-///    - OneStep: Execute a single step and auto-pause
-/// 
-/// 2) ENTITY MANAGEMENT (through EntityManager) as Interface:
-///    - Create new entities with specified properties
-///    - Add properties to existing entities
-///    - Remove properties from entities
-///    - Query entity composition and status
-/// 
-/// Does not own ServiceManager or EntityManager - receives them as references.
-/// EntityManager owns and coordinates with StateManager for all storage operations.
+/// Acts as the "great overseer": owns the top-level TestExecutorService, the
+/// CancellationTokenSource, and the PauseHandle that propagate to every inner level.
+///
+/// Controls:
+/// - RunAsync  — starts TestExecutorService, awaits completion
+/// - Pause / Continue — suspend/resume between steps at all levels
+/// - StopAsync — cancels execution at any depth
+///
+/// Entity management methods operate on the outer entity store.
+/// Does not hold a ServiceManager directly; that is owned by TestExecutorService.
 /// </summary>
 public class InteractionController : IInteractionController
 {
-    private readonly ServiceManager _serviceManager;
     private readonly EntityManager _entityManager;
+    private readonly TestExecutorService _executorService;
+    private readonly CancellationTokenSource _cts = new();
+    private readonly PauseHandle _pauseHandle = new();
 
-    public InteractionController(ServiceManager serviceManager, EntityManager entityManager)
+    public InteractionController(EntityManager entityManager, TestExecutorService executorService)
     {
-        if (serviceManager == null)
-            throw new ArgumentNullException(nameof(serviceManager));
-        if (entityManager == null)
-            throw new ArgumentNullException(nameof(entityManager));
+        _entityManager   = entityManager   ?? throw new ArgumentNullException(nameof(entityManager));
+        _executorService = executorService ?? throw new ArgumentNullException(nameof(executorService));
+    }
 
-        _serviceManager = serviceManager;
-        _entityManager = entityManager;
+    /// <inheritdoc/>
+    public async Task RunAsync()
+    {
+        await _executorService.RunAsync(_cts.Token, _pauseHandle);
     }
 
     /// <summary>
@@ -54,125 +45,24 @@ public class InteractionController : IInteractionController
     }
 
     /// <inheritdoc/>
-    public IInnerServiceFactory GetInnerServiceFactory()
-    {
-        return _serviceManager;
-    }
-
-    /// <summary>
-    /// 1) START: Starts the simulation.
-    /// Executes the simulation loop continuously until Pause() or Stop() is called.
-    /// State is preserved and updated in the repository with each step.
-    /// </summary>
-    public async Task StartAsync()
-    {
-        var state = _serviceManager.GetState();
-
-        if (state != ServiceManager.SimulationState.Stopped)
-        {
-            throw new InvalidOperationException("Simulation is already running or paused. Stop it first.");
-        }
-
-        Console.WriteLine("Starting simulation...");
-        await _serviceManager.StartAsync();
-    }
-
-    /// <summary>
-    /// 3) PAUSE: Pauses the simulation without losing state.
-    /// The simulation loop stops executing after completing the current step.
-    /// All state is preserved in the StateRepository.
-    /// Can be resumed later with Continue().
-    /// </summary>
     public void Pause()
     {
-        var state = _serviceManager.GetState();
-
-        if (state == ServiceManager.SimulationState.Running)
-        {
-            _serviceManager.Pause();
-            Console.WriteLine("Simulation paused. State is preserved.");
-        }
-        else if (state == ServiceManager.SimulationState.Paused)
-        {
-            Console.WriteLine("Simulation is already paused.");
-        }
-        else
-        {
-            throw new InvalidOperationException("Cannot pause a stopped simulation.");
-        }
+        _pauseHandle.Pause();
+        Console.WriteLine("Simulation paused.");
     }
 
-    /// <summary>
-    /// 4) CONTINUE: Resumes the simulation from a paused state.
-    /// Execution continues exactly where it was paused.
-    /// State is restored from the StateRepository.
-    /// </summary>
+    /// <inheritdoc/>
     public void Continue()
     {
-        var state = _serviceManager.GetState();
-
-        if (state == ServiceManager.SimulationState.Paused)
-        {
-            _serviceManager.Continue();
-            Console.WriteLine("Simulation resumed from pause.");
-        }
-        else if (state == ServiceManager.SimulationState.Running)
-        {
-            Console.WriteLine("Simulation is already running.");
-        }
-        else
-        {
-            throw new InvalidOperationException("Cannot continue a stopped simulation. Start it instead.");
-        }
+        _pauseHandle.Resume();
+        Console.WriteLine("Simulation resumed.");
     }
 
-    /// <summary>
-    /// 2) STOP: Stops the simulation completely and resets to clean state.
-    /// Halts all execution immediately.
-    /// Deletes all properties from the StateRepository for a fresh start.
-    /// State is NOT preserved after stop.
-    /// </summary>
-    public async Task StopAsync()
+    /// <inheritdoc/>
+    public Task StopAsync()
     {
-        var state = _serviceManager.GetState();
-
-        if (state == ServiceManager.SimulationState.Stopped)
-        {
-            Console.WriteLine("Simulation is already stopped.");
-            return;
-        }
-
-        await _serviceManager.StopAsync();
-
-        // Clear all state for a clean reset
-        await _serviceManager.ClearAllStateAsync();
-    }
-
-    /// <summary>
-    /// Gets the current state of the simulation.
-    /// </summary>
-    public string GetCurrentState()
-    {
-        return _serviceManager.GetState().ToString();
-    }
-
-    /// <summary>
-    /// 5) ONE-STEP: Executes exactly one simulation step and automatically pauses.
-    /// Useful for step-by-step debugging or manual control of the simulation.
-    /// Can be called when paused or at the beginning (before Start).
-    /// State is preserved after each step.
-    /// Executes all registered SimulationServices once.
-    /// </summary>
-    public async Task OneStepAsync()
-    {
-        var state = _serviceManager.GetState();
-
-        if (state != ServiceManager.SimulationState.Paused && state != ServiceManager.SimulationState.Stopped)
-        {
-            throw new InvalidOperationException("OneStep can only be used when paused or stopped. Pause the simulation first.");
-        }
-
-        await _serviceManager.ExecuteOneStepAsync();
+        _cts.Cancel();
+        return Task.CompletedTask;
     }
 
     #region Entity Management

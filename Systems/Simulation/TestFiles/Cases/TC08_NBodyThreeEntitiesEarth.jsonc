@@ -1,6 +1,7 @@
 {
   "name": "Three entities + Earth: N-body mass and radius variations",
-  "configurationFile": "NBodySetup",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "NBodySetup",
   "description": "Three entities with different mass/radius combinations under N-body gravitational attraction from Earth",
   "headerLines": [
     "TEST CASE 8: Three Entities + Earth - N-Body Mass & Radius Variations",

@@ -1,6 +1,7 @@
 {
   "name": "Three entities: mass and radius variations",
-  "configurationFile": "DefaultSetup",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "DefaultSetup",
   "description": "Three entities with different mass/radius combinations showing terminal velocity differences",
   "headerLines": [
     "TEST CASE 2: Three Entities - Mass & Radius Variations",

@@ -1,6 +1,7 @@
 {
   "name": "Orbital mechanics: Moon-Earth 2-body system",
-  "configurationFile": "OrbitalSetup",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "OrbitalSetup",
   "description": "Moon orbiting Earth in a stable elliptical orbit over ~27.7 days",
   "headerLines": [
     "TEST CASE 15: Orbital Mechanics - Moon-Earth 2-Body System",

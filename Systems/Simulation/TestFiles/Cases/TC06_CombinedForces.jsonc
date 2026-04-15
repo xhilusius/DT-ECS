@@ -1,6 +1,7 @@
 {
   "name": "Combined forces: gravity only, gravity+magnetism, gravity+wind, gravity+magnetism+wind",
-  "configurationFile": "DefaultSetup",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "DefaultSetup",
   "description": "Four entities with identical size/mass but different force combinations: gravity-only, gravity+magnetism, gravity+wind, gravity+magnetism+wind",
   "headerLines": [
     "TEST CASE 6: Combined Forces - Force Composition",

@@ -1,5 +1,7 @@
 namespace Simulation.Interfaces;
 
+using Simulation.EntityManager;
+
 /// <summary>
 /// Represents a single isolated inner service session.
 /// Provides the minimal surface a composite service needs to populate
@@ -15,9 +17,14 @@ public interface IInnerService
     int SimulationSteps { get; }
 
     /// <summary>
-    /// Spawns an entity in the inner store.
+    /// Spawns an entity in the inner store and returns the created entity with its assigned ID.
     /// </summary>
-    Task CreateEntityAsync(string name, Dictionary<string, object> properties, string? description = null);
+    Task<Entity> CreateEntityAsync(string name, Dictionary<string, object> properties, string? description = null);
+
+    /// <summary>
+    /// Removes an entity from the inner store.
+    /// </summary>
+    Task RemoveEntityAsync(int entityId);
 
     /// <summary>
     /// Advances the inner simulation by one step.

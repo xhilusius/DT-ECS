@@ -1,6 +1,7 @@
 {
   "name": "Single entity + Earth: N-body gravity",
-  "configurationFile": "NBodySetup",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "NBodySetup",
   "description": "Single entity falling under N-body gravitational attraction from Earth",
   "headerLines": [
     "TEST CASE 7: Single Entity + Earth - N-Body Gravity"

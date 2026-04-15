@@ -1,6 +1,7 @@
 {
   "name": "Single entity: gravity and positioning",
-  "configurationFile": "DefaultSetup",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "DefaultSetup",
   "description": "Single entity falling under gravity with terminal velocity",
   "headerLines": [
     "TEST CASE 1: Single Entity - Gravity & Positioning"

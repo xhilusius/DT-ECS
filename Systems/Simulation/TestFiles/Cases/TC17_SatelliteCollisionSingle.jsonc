@@ -1,6 +1,7 @@
 {
   "name": "Satellite collision detection: head-on counter-orbit",
-  "configurationFile": "SatelliteSetup",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "SatelliteSetup",
   "description": "Earth + 2 satellites on opposite sides of the same LEO orbit, moving in opposite directions. Sat1 CCW at (+R,0), Candidate CW at (-R,0) — both heading toward (0,+R,0). Closing speed ~15,344 m/s. Radius overridden to 10 km so the 20 km combined zone exceeds the 15,344 m/step jump. Collision expected at step ~1386.",
   "headerLines": [
     "TEST CASE 17: Satellite Collision Detection — Counter-Orbit Head-On",

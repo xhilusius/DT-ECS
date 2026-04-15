@@ -1,6 +1,7 @@
 {
   "name": "Wind effect + Earth: large radius vs small radius with N-body gravity",
-  "configurationFile": "NBodySetup",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "NBodySetup",
   "description": "Two entities with same mass under N-body gravity: one with large radius (affected by wind), one with small radius (minimal wind effect)",
   "headerLines": [
     "TEST CASE 11: Wind Effect + Earth - Large vs Small Radius",

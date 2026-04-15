@@ -1,6 +1,7 @@
 {
   "name": "Entity removal and name reuse",
-  "configurationFile": "NBodySetup",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "NBodySetup",
   "description": "Demonstrates entity removal freeing up names for reuse",
   "headerLines": [
     "TEST CASE 14: Entity Removal & Name Reuse",

@@ -1,6 +1,7 @@
 {
   "name": "N-body gravity: late spawn",
-  "configurationFile": "NBodySetup",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "NBodySetup",
   "description": "N-body gravity only with one ball at start and a second ball spawned mid-simulation",
   "headerLines": [
     "TEST CASE 13: N-Body Gravity - Late Spawn",

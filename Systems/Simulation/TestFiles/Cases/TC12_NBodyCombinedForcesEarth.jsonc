@@ -1,6 +1,7 @@
 {
   "name": "Combined forces + Earth: gravity only, gravity+magnetism, gravity+wind, gravity+magnetism+wind with N-body",
-  "configurationFile": "NBodySetup",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "NBodySetup",
   "description": "Four entities with identical size/mass but different force combinations under N-body gravity: gravity-only, gravity+magnetism, gravity+wind, gravity+magnetism+wind",
   "headerLines": [
     "TEST CASE 12: Combined Forces + Earth - Force Composition with N-Body",

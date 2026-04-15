@@ -68,12 +68,15 @@ public class WhatIfService : ICompositeService
     }
 
     /// <inheritdoc/>
-    public async Task ExecuteAsync()
+    public async Task ExecuteAsync(CancellationToken ct, PauseHandle pauseHandle)
     {
         Results.Clear();
 
         foreach (var (entityId, config) in Scenarios)
         {
+            await pauseHandle.WaitIfPausedAsync(ct);
+            ct.ThrowIfCancellationRequested();
+
             var result = await RunSingleScenarioAsync(entityId, config);
             Results[entityId] = result;
         }
@@ -95,7 +98,7 @@ public class WhatIfService : ICompositeService
     {
         try
         {
-            var inner = await _innerServiceFactory.CreateInnerServiceAsync(config.SetupName);
+            var inner = await _innerServiceFactory.CreateInnerServiceAsync(config.SetupName, silent: true);
 
             // Spawn base entities (Earth, pre-existing satellites) — each scenario carries
             // its own snapshot, so inner sims are isolated from each other.

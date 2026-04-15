@@ -11,9 +11,7 @@ namespace Simulation.Interfaces;
 public interface IInnerServiceFactory
 {
     /// <summary>
-    /// Creates and initializes a new isolated inner service session.
-    /// The session is loaded from the named setup configuration
-    /// (e.g. "SatelliteSetup") and is ready to receive entities.
-    /// </summary>
-    Task<IInnerService> CreateInnerServiceAsync(string setupName);
+    /// <param name="setupName">The configuration setup name to load.</param>
+    /// <param name="silent">When true, suppresses state reporting output. Default false.</param>
+    Task<IInnerService> CreateInnerServiceAsync(string setupName, bool silent = false);
 }

@@ -1,6 +1,7 @@
 {
   "name": "Magnetism: metallic vs non-metallic entities",
-  "configurationFile": "DefaultSetup",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "DefaultSetup",
   "description": "Two entities: one metallic (affected by magnetic field), one non-metallic (gravity only)",
   "headerLines": [
     "TEST CASE 4: Magnetism - Metallic vs Non-Metallic",
