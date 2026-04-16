@@ -1,68 +1,56 @@
 namespace Simulation.ServiceManager.CompositeServices;
 
+using Simulation.EntityManager;
 using Simulation.Interfaces;
 using Simulation.PropertyTypes;
+using Simulation.StateManager;
+
 /// <summary>
-/// Composite service that runs one isolated inner simulation per scenario entity.
+/// Collision event captured inside a what-if inner simulation.
+/// Private to WhatIfService — this is collision-domain knowledge.
+/// </summary>
+file record WhatIfCollisionEvent(
+    int EntityId,
+    string EntityName,
+    int OtherEntityId,
+    string OtherEntityName,
+    double[] EntityPosition);
+
+/// <summary>
+/// Composite service that runs one isolated inner simulation per what-if scenario.
 ///
-/// In ECS terms:
-///   - Outer entities carrying a <c>ScenarioConfig</c> property are the "scenarios".
-///   - This service is scheduled by the outer ServiceManager once per outer step.
-///   - For each scenario entity it creates a fresh inner simulation stack
-///     (RepositoryManager, EntityManager, StateManager, TransformExecutor, ServiceManager),
-///     spawns both the shared base entities and the scenario-specific entities,
-///     runs the inner loop for the configured number of steps, then writes a
-///     <c>ScenarioResult</c> property value back to the outer store.
+/// Reads its inputs from the outer ECS property arrays like any other transform service:
+/// entities that carry a <see cref="WhatIfLabel"/> are scenario candidates;
+/// all remaining entities form the shared base world (Earth, background constellation, target).
 ///
-/// Naming:
-///   - "WhatIfService" is the name of this particular instance/use-case.
-///   - The abstraction it implements is ICompositeService: any service that
-///     internally owns and orchestrates a full inner service pipeline.
+/// For each candidate entity the service:
+///   1. Creates a fresh inner simulation stack.
+///   2. Spawns all base-world entities.
+///   3. Spawns the candidate entity.
+///   4. Advances the inner loop step-by-step, stopping immediately on a collision.
+///   5. Writes a <see cref="ScenarioResult"/> back to the candidate's outer property slot.
+///
+/// After all scenarios finish, a consolidated what-if summary table is printed.
 /// </summary>
 public class WhatIfService : ICompositeService
 {
-    private string _setupName = string.Empty;
+    private string _setupName       = string.Empty;
+    private double _timeStepSeconds = 1.0;
 
-    /// <summary>
-    /// Factory that creates isolated inner service sessions on demand.
-    /// Provided by the ServiceManager layer; composite services have no knowledge
-    /// of the concrete stack behind it.
-    /// </summary>
     private readonly IInnerServiceFactory _innerServiceFactory;
+    private readonly EntityManager        _outerEntityManager;
 
-    /// <summary>
-    /// Entity property defaults keyed by template name (e.g. "Satellite", "Earth_ball").
-    /// Injected at construction so WhatIfService has no dependency on any file path.
-    /// </summary>
-    private readonly IReadOnlyDictionary<string, Dictionary<string, object>> _entityTemplates;
-
-    public WhatIfService(
-        IInnerServiceFactory innerServiceFactory,
-        IReadOnlyDictionary<string, Dictionary<string, object>> entityTemplates)
+    public WhatIfService(IInnerServiceFactory innerServiceFactory, EntityManager outerEntityManager)
     {
         _innerServiceFactory = innerServiceFactory ?? throw new ArgumentNullException(nameof(innerServiceFactory));
-        _entityTemplates = entityTemplates ?? throw new ArgumentNullException(nameof(entityTemplates));
+        _outerEntityManager  = outerEntityManager  ?? throw new ArgumentNullException(nameof(outerEntityManager));
     }
-
-    /// <summary>
-    /// All scenario configs to process, keyed by their outer entity ID.
-    /// Populated by the outer test orchestration before ExecuteAsync is called.
-    /// Each config carries its own snapshot of the base entities, so inner sims
-    /// are fully isolated from one another.
-    /// </summary>
-    public Dictionary<int, ScenarioConfig> Scenarios { get; } = new();
-
-    /// <summary>
-    /// Results produced after ExecuteAsync completes — one entry per scenario entity ID.
-    /// </summary>
-    public Dictionary<int, ScenarioResult> Results { get; } = new();
 
     /// <inheritdoc/>
     public Task InitializeAsync(string setupName)
     {
         if (string.IsNullOrWhiteSpace(setupName))
             throw new ArgumentException("Setup name cannot be null or empty", nameof(setupName));
-
         _setupName = setupName;
         return Task.CompletedTask;
     }
@@ -70,39 +58,166 @@ public class WhatIfService : ICompositeService
     /// <inheritdoc/>
     public async Task ExecuteAsync(CancellationToken ct, PauseHandle pauseHandle)
     {
-        Results.Clear();
+        var stateManager = _outerEntityManager.GetStateManager();
 
-        foreach (var (entityId, config) in Scenarios)
+        // ── 1. Load all property arrays into a local cache (one read per type) ─
+        var propArrayCache = await BuildPropertyArrayCacheAsync(stateManager);
+
+        // ── 2. Classify entities into candidates vs base-world ────────────────
+        var candidateIds = new HashSet<int>(
+            _outerEntityManager.GetEntitiesForProperty("WhatIfLabel"));
+
+        var baseEntityIds = _outerEntityManager.GetAllEntityIds()
+            .Where(id => !candidateIds.Contains(id))
+            .ToList();
+
+        // ── 3. Build base-world snapshots once (shared across all scenarios) ──
+        var baseEntities = baseEntityIds
+            .Select(id => BuildSnapshotFromCache(id, propArrayCache))
+            .ToList();
+
+        // ── 4. Run one inner simulation per candidate (ordered by entity ID) ──
+        var orderedCandidates = candidateIds.OrderBy(id => id).ToList();
+        int total   = orderedCandidates.Count;
+        int current = 0;
+
+        var allResults = new List<ScenarioResult>(total);
+
+        foreach (var candidateId in orderedCandidates)
         {
+            current++;
             await pauseHandle.WaitIfPausedAsync(ct);
             ct.ThrowIfCancellationRequested();
 
-            var result = await RunSingleScenarioAsync(entityId, config);
-            Results[entityId] = result;
+            // Resolve scenario label and run inner simulation
+            string label = ResolveLabel(candidateId, propArrayCache, current);
+
+            Console.WriteLine($"  Running scenario [{current}/{total}]: {label} …");
+
+            var candidateSnapshot = BuildSnapshotFromCache(candidateId, propArrayCache);
+            var result = await RunSingleScenarioAsync(candidateId, label, baseEntities, candidateSnapshot);
+            allResults.Add(result);
+
+            await WriteResultToOuterStoreAsync(candidateId, result, stateManager);
         }
+
+        PrintSummary(allResults);
     }
 
     /// <inheritdoc/>
     public async Task ReinitializeAsync(string setupName)
     {
-        Scenarios.Clear();
-        Results.Clear();
         await InitializeAsync(setupName);
+    }
+
+    // -------------------------------------------------------------------------
+    // Outer-store helpers
+    // -------------------------------------------------------------------------
+
+    /// <summary>Reads every property type present in the outer store into a dictionary.</summary>
+    private async Task<Dictionary<string, List<object>>> BuildPropertyArrayCacheAsync(
+        StateManager stateManager)
+    {
+        var cache = new Dictionary<string, List<object>>(StringComparer.OrdinalIgnoreCase);
+
+        var allPropTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entityId in _outerEntityManager.GetAllEntityIds())
+        {
+            foreach (var pt in _outerEntityManager.GetEntityComposition(entityId))
+                allPropTypes.Add(pt);
+        }
+
+        foreach (var pt in allPropTypes)
+        {
+            var arr = await stateManager.GetPropertiesByTypeAsync(pt);
+            if (arr != null) cache[pt] = arr;
+        }
+
+        return cache;
+    }
+
+    /// <summary>
+    /// Builds a <see cref="BaseEntitySnapshot"/> using the pre-loaded property array cache.
+    /// Meta-properties (<c>WhatIfLabel</c>, <c>ScenarioResult</c>) are excluded so they
+    /// are not forwarded into inner simulations.
+    /// </summary>
+    private BaseEntitySnapshot BuildSnapshotFromCache(
+        int entityId,
+        Dictionary<string, List<object>> propArrayCache)
+    {
+        var composition = _outerEntityManager.GetEntityComposition(entityId);
+        var props       = new Dictionary<string, object>();
+
+        foreach (var propType in composition)
+        {
+            if (propType is "WhatIfLabel" or "ScenarioResult") continue;
+
+            if (!propArrayCache.TryGetValue(propType, out var array)) continue;
+
+            int idx = _outerEntityManager.GetEntityIndexInProperty(entityId, propType);
+            if (idx >= 0 && idx < array.Count)
+                props[propType] = array[idx];
+        }
+
+        var entity = _outerEntityManager.GetEntity(entityId);
+        return new BaseEntitySnapshot(
+            entity?.Name ?? $"Entity_{entityId}",
+            entity?.Description,
+            props);
+    }
+
+    /// <summary>Resolves the human-readable scenario label from the WhatIfLabel property array.</summary>
+    private string ResolveLabel(
+        int candidateId,
+        Dictionary<string, List<object>> propArrayCache,
+        int fallbackIndex)
+    {
+        int labelIdx = _outerEntityManager.GetEntityIndexInProperty(candidateId, "WhatIfLabel");
+        if (propArrayCache.TryGetValue("WhatIfLabel", out var labelArr)
+            && labelIdx >= 0 && labelIdx < labelArr.Count)
+        {
+            return ((WhatIfLabel)labelArr[labelIdx]).Value;
+        }
+        return $"Scenario {fallbackIndex}";
+    }
+
+    /// <summary>
+    /// Patches the candidate entity's <see cref="ScenarioResult"/> slot in the outer store
+    /// with the completed result.
+    /// </summary>
+    private async Task WriteResultToOuterStoreAsync(
+        int candidateId,
+        ScenarioResult result,
+        StateManager stateManager)
+    {
+        var resultArray = await stateManager.GetPropertiesByTypeAsync("ScenarioResult");
+        if (resultArray == null) return;
+
+        int idx = _outerEntityManager.GetEntityIndexInProperty(candidateId, "ScenarioResult");
+        if (idx >= 0 && idx < resultArray.Count)
+        {
+            resultArray[idx] = result;
+            await stateManager.SetPropertiesByTypeAsync("ScenarioResult", resultArray);
+        }
     }
 
     // -------------------------------------------------------------------------
     // Inner simulation runner
     // -------------------------------------------------------------------------
 
-    private async Task<ScenarioResult> RunSingleScenarioAsync(int scenarioEntityId, ScenarioConfig config)
+    private async Task<ScenarioResult> RunSingleScenarioAsync(
+        int candidateEntityId,
+        string label,
+        IReadOnlyList<BaseEntitySnapshot> baseEntities,
+        BaseEntitySnapshot candidateSnapshot)
     {
         try
         {
-            var inner = await _innerServiceFactory.CreateInnerServiceAsync(config.SetupName, silent: true);
+            var inner = await _innerServiceFactory.CreateInnerServiceAsync(_setupName, silent: true);
+            _timeStepSeconds = inner.TimeStepSeconds;
 
-            // Spawn base entities (Earth, pre-existing satellites) — each scenario carries
-            // its own snapshot, so inner sims are isolated from each other.
-            foreach (var baseEntity in config.BaseEntities)
+            // Spawn shared base entities (Earth, background constellation, target)
+            foreach (var baseEntity in baseEntities)
             {
                 await inner.CreateEntityAsync(
                     baseEntity.Name,
@@ -110,32 +225,123 @@ public class WhatIfService : ICompositeService
                     baseEntity.Description);
             }
 
-            // Spawn the scenario-specific entities (the candidate(s))
-            foreach (var spawn in config.EntitySpawns)
+            // Spawn the scenario candidate
+            await inner.CreateEntityAsync(
+                candidateSnapshot.Name,
+                new Dictionary<string, object>(candidateSnapshot.Properties),
+                candidateSnapshot.Description);
+
+            int maxSteps = inner.SimulationSteps;
+            WhatIfCollisionEvent? collision = null;
+            int collisionStep = 0;
+
+            for (int step = 1; step <= maxSteps; step++)
             {
-                if (!_entityTemplates.TryGetValue(spawn.TemplateName, out var templateProps))
-                    throw new KeyNotFoundException(
-                        $"Entity template '{spawn.TemplateName}' not found in injected entity library.");
-
-                var properties = new Dictionary<string, object>(templateProps);
-                foreach (var (key, value) in spawn.PropertyOverrides)
-                    properties[key] = value;
-
-                await inner.CreateEntityAsync(spawn.TemplateName, properties);
-            }
-
-            int steps = inner.SimulationSteps;
-            for (int step = 0; step < steps; step++)
                 await inner.OneStepAsync();
+
+                // Query the generic property API; cast to CollisionRecord here where
+                // we have the domain knowledge to do so.
+                var entries = await inner.GetPropertyValuesAsync("CollisionDetected");
+                foreach (var (entityId, entityName, rawValue) in entries)
+                {
+                    if (rawValue is CollisionRecord cr)
+                    {
+                        string otherName = entries
+                            .FirstOrDefault(e => e.EntityId == cr.CollidedWithEntityId)
+                            .EntityName ?? $"Entity_{cr.CollidedWithEntityId}";
+
+                        collision     = new WhatIfCollisionEvent(entityId, entityName,
+                            cr.CollidedWithEntityId, otherName, cr.EntityPosition);
+                        collisionStep = step;
+                        break;
+                    }
+                }
+                if (collision != null) break;
+            }
 
             await inner.StopAsync();
 
-            return new ScenarioResult(scenarioEntityId, true, steps, $"Inner sim completed ({steps} steps)");
+            bool crashed = collision != null;
+            return new ScenarioResult(
+                ScenarioEntityId:       candidateEntityId,
+                Completed:              true,
+                StepsExecuted:          crashed ? collisionStep : maxSteps,
+                Summary:                crashed
+                                            ? $"Crash at step {collisionStep} with '{collision!.OtherEntityName}'"
+                                            : $"No collision — {maxSteps} steps completed",
+                Label:                  label,
+                CollisionDetected:      crashed,
+                CollisionAtStep:        collisionStep,
+                CollidedWithEntityId:   collision?.OtherEntityId ?? -1,
+                CollidedWithEntityName: collision?.OtherEntityName ?? "",
+                CollisionPosition:      collision?.EntityPosition);
         }
         catch (Exception ex)
         {
-            return new ScenarioResult(scenarioEntityId, false, 0, $"Failed: {ex.Message}");
+            return new ScenarioResult(
+                ScenarioEntityId: candidateEntityId,
+                Completed:        false,
+                StepsExecuted:    0,
+                Summary:          $"Failed: {ex.Message}",
+                Label:            label);
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Summary output
+    // -------------------------------------------------------------------------
+
+    private void PrintSummary(IReadOnlyList<ScenarioResult> results)
+    {
+        const int W = 72; // total inner width (between ║ and ║)
+
+        Console.WriteLine();
+        Console.WriteLine($"╔{new string('═', W)}╗");
+        Console.WriteLine($"║{"  WHAT-IF ANALYSIS — RESULTS".PadRight(W)}║");
+        Console.WriteLine($"╠{new string('═', W)}╣");
+
+        for (int i = 0; i < results.Count; i++)
+        {
+            var result = results[i];
+
+            // Scenario label line
+            string labelLine = $"  {result.Label}";
+            Console.WriteLine($"║{labelLine.PadRight(W)}║");
+
+            if (result.CollisionDetected)
+            {
+                double realSecs = result.CollisionAtStep * _timeStepSeconds;
+                int    mm       = (int)(realSecs / 60);
+                int    ss       = (int)(realSecs % 60);
+
+                var pos = result.CollisionPosition;
+                string posStr = pos != null && pos.Length >= 3
+                    ? $"({pos[0] / 1000.0:F0} km, {pos[1] / 1000.0:F0} km, {pos[2] / 1000.0:F0} km)"
+                    : "unknown";
+
+                Console.WriteLine($"║{"    \u2620  CRASH".PadRight(W)}║");
+                Console.WriteLine($"║{$"       Step : {result.CollisionAtStep}  ({mm:D2}:{ss:D2} sim-time)".PadRight(W)}║");
+                Console.WriteLine($"║{$"       With : {result.CollidedWithEntityName} (id={result.CollidedWithEntityId})".PadRight(W)}║");
+                Console.WriteLine($"║{$"       At   : {posStr}".PadRight(W)}║");
+            }
+            else
+            {
+                double totalSecs = result.StepsExecuted * _timeStepSeconds;
+                int    mm        = (int)(totalSecs / 60);
+                int    ss        = (int)(totalSecs % 60);
+
+                Console.WriteLine($"║{"    \u2713  NO CRASH".PadRight(W)}║");
+                Console.WriteLine($"║{$"       Steps: {result.StepsExecuted}  ({mm:D2}:{ss:D2} sim-time)".PadRight(W)}║");
+            }
+
+            // Use closing border on the last entry, separator on all others
+            bool isLast = i == results.Count - 1;
+            Console.WriteLine(isLast
+                ? $"╚{new string('═', W)}╝"
+                : $"╠{new string('═', W)}╣");
+        }
+
+        Console.WriteLine();
+    }
 }
+

@@ -1,0 +1,383 @@
+{
+  // TEST CASE 20: Multi-Constellation What-If Analysis
+  //
+  // Same environment as TC18: 100 background satellites across 25 altitude bands
+  // (300–2500 km) plus a single Red target at 700 km orbiting CCW.
+  //
+  // 10 what-if scenarios explore different starting positions for a Yellow candidate
+  // at the same 700 km altitude:
+  //   A–H  CW counter-orbit starting at angles that yield crashes at ~50, 200, 400,
+  //         600, 800, 1000, 1200, 1350 s respectively.
+  //   I    CW counter-orbit, same placement as TC18 — crash expected at ~1479 s.
+  //   J    CCW co-orbit, 90° ahead of Red — same period, always 90° apart, NO crash.
+  //
+  // Orbital parameters (700 km):  r=7,071,000 m  v=7,508 m/s  ω≈0.001062 rad/s
+  // Collision time formula (CW candidate at angle α): t ≈ α / (2ω)
+  // Each step = 1 s (SatelliteSetup timeStep).
+
+  "name": "Multi-constellation: what-if analysis (10 scenarios)",
+  "outerSetup": "WhatIfRunSetup",
+  "innerSetup": "SatelliteSetup",
+  "description": "What-if analysis over 10 candidate starting positions at 700 km. Eight counter-orbiting (CW) placements produce crashes at progressively later times (steps 50–1479). One CCW co-orbital placement at 90° offset never crosses the target path. One CW placement exactly mirrors TC18. Each inner simulation stops as soon as a collision is detected. A consolidated summary is printed at the end.",
+  "headerLines": [
+    "TEST CASE 20: Multi-Constellation What-If Analysis",
+    "Background : 100 sats, 25 bands (300–2500 km), inclinations 0°–165°",
+    "Target     : Red  at (7,071,000, 0, 0) m  |  v=(0,+7508,0) m/s  CCW  700 km",
+    "Scenarios  : 8 × CW crash (steps 50–1479)  +  1 × TC18 clone  +  1 × safe CCW"
+  ],
+
+  // =========================================================================
+  // BASE ENTITIES — spawned in every inner simulation
+  // Earth + 100 background satellites + Red target (identical to TC18)
+  // =========================================================================
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Earth_ball" },
+
+        // --- 400 km band (r=6,771,000 · v=7,673 m/s) --- Blue, i=0° equatorial
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 6771000,       0,       0], "CurrentSpeed": [    0,  7673,    0], "Radius": 20000, "Color": "Blue"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 6771000,       0], "CurrentSpeed": [-7673,     0,    0], "Radius": 20000, "Color": "Blue"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-6771000,       0,       0], "CurrentSpeed": [    0, -7673,    0], "Radius": 20000, "Color": "Blue"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-6771000,       0], "CurrentSpeed": [ 7673,     0,    0], "Radius": 20000, "Color": "Blue"    } },
+
+        // --- 500 km band (r=6,871,000 · v=7,616 m/s) --- Cyan, i=90° polar
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 6871000,       0,       0], "CurrentSpeed": [    0,    0, 7616], "Radius": 20000, "Color": "Cyan"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,       0, 6871000], "CurrentSpeed": [-7616,    0,    0], "Radius": 20000, "Color": "Cyan"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-6871000,       0,       0], "CurrentSpeed": [    0,    0,-7616], "Radius": 20000, "Color": "Cyan"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,       0,-6871000], "CurrentSpeed": [ 7616,    0,    0], "Radius": 20000, "Color": "Cyan"    } },
+
+        // --- 550 km band (r=6,921,000 · v=7,589 m/s) --- Green, i=45°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 6921000,       0,       0], "CurrentSpeed": [    0,  5367, 5367], "Radius": 20000, "Color": "Green"   } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 4893000, 4893000], "CurrentSpeed": [-7589,     0,    0], "Radius": 20000, "Color": "Green"   } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-6921000,       0,       0], "CurrentSpeed": [    0, -5367,-5367], "Radius": 20000, "Color": "Green"   } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-4893000,-4893000], "CurrentSpeed": [ 7589,     0,    0], "Radius": 20000, "Color": "Green"   } },
+
+        // --- 800 km band (r=7,171,000 · v=7,456 m/s) --- Orange, i=60°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 7171000,       0,       0], "CurrentSpeed": [    0,  3728, 6457], "Radius": 20000, "Color": "Orange"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 3585500, 6210000], "CurrentSpeed": [-7456,     0,    0], "Radius": 20000, "Color": "Orange"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-7171000,       0,       0], "CurrentSpeed": [    0, -3728,-6457], "Radius": 20000, "Color": "Orange"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-3585500,-6210000], "CurrentSpeed": [ 7456,     0,    0], "Radius": 20000, "Color": "Orange"  } },
+
+        // --- 1000 km band (r=7,371,000 · v=7,354 m/s) --- Purple, i=120°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 7371000,       0,       0], "CurrentSpeed": [    0, -3677, 6373], "Radius": 20000, "Color": "Purple"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-3685500, 6383000], "CurrentSpeed": [-7354,     0,    0], "Radius": 20000, "Color": "Purple"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-7371000,       0,       0], "CurrentSpeed": [    0,  3677,-6373], "Radius": 20000, "Color": "Purple"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 3685500,-6383000], "CurrentSpeed": [ 7354,     0,    0], "Radius": 20000, "Color": "Purple"  } },
+
+        // --- 1200 km band (r=7,571,000 · v=7,256 m/s) --- Magenta, i=150°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 7571000,       0,       0], "CurrentSpeed": [    0, -6284, 3628], "Radius": 20000, "Color": "Magenta" } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-6556000, 3785500], "CurrentSpeed": [-7256,     0,    0], "Radius": 20000, "Color": "Magenta" } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-7571000,       0,       0], "CurrentSpeed": [    0,  6284,-3628], "Radius": 20000, "Color": "Magenta" } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 6556000,-3785500], "CurrentSpeed": [ 7256,     0,    0], "Radius": 20000, "Color": "Magenta" } },
+
+        // --- 300 km band (r=6,671,000 · v=7,729 m/s) --- Blue, i=15°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 6671000,       0,       0], "CurrentSpeed": [    0,  7465, 2000], "Radius": 20000, "Color": "Blue"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 6443000, 1726000], "CurrentSpeed": [-7729,     0,    0], "Radius": 20000, "Color": "Blue"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-6671000,       0,       0], "CurrentSpeed": [    0, -7465,-2000], "Radius": 20000, "Color": "Blue"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-6443000,-1726000], "CurrentSpeed": [ 7729,     0,    0], "Radius": 20000, "Color": "Blue"    } },
+
+        // --- 350 km band (r=6,721,000 · v=7,701 m/s) --- Cyan, i=30°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 6721000,       0,       0], "CurrentSpeed": [    0,  6669, 3850], "Radius": 20000, "Color": "Cyan"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 5820000, 3361000], "CurrentSpeed": [-7701,     0,    0], "Radius": 20000, "Color": "Cyan"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-6721000,       0,       0], "CurrentSpeed": [    0, -6669,-3850], "Radius": 20000, "Color": "Cyan"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-5820000,-3361000], "CurrentSpeed": [ 7701,     0,    0], "Radius": 20000, "Color": "Cyan"    } },
+
+        // --- 450 km band (r=6,821,000 · v=7,645 m/s) --- Green, i=75°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 6821000,       0,       0], "CurrentSpeed": [    0,  1979, 7384], "Radius": 20000, "Color": "Green"   } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 1765000, 6590000], "CurrentSpeed": [-7645,     0,    0], "Radius": 20000, "Color": "Green"   } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-6821000,       0,       0], "CurrentSpeed": [    0, -1979,-7384], "Radius": 20000, "Color": "Green"   } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-1765000,-6590000], "CurrentSpeed": [ 7645,     0,    0], "Radius": 20000, "Color": "Green"   } },
+
+        // --- 600 km band (r=6,971,000 · v=7,562 m/s) --- Orange, i=105°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 6971000,       0,       0], "CurrentSpeed": [    0, -1957, 7304], "Radius": 20000, "Color": "Orange"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-1804000, 6733000], "CurrentSpeed": [-7562,     0,    0], "Radius": 20000, "Color": "Orange"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-6971000,       0,       0], "CurrentSpeed": [    0,  1957,-7304], "Radius": 20000, "Color": "Orange"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 1804000,-6733000], "CurrentSpeed": [ 7562,     0,    0], "Radius": 20000, "Color": "Orange"  } },
+
+        // --- 650 km band (r=7,021,000 · v=7,535 m/s) --- Purple, i=135°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 7021000,       0,       0], "CurrentSpeed": [    0, -5328, 5328], "Radius": 20000, "Color": "Purple"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-4966000, 4966000], "CurrentSpeed": [-7535,     0,    0], "Radius": 20000, "Color": "Purple"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-7021000,       0,       0], "CurrentSpeed": [    0,  5328,-5328], "Radius": 20000, "Color": "Purple"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 4966000,-4966000], "CurrentSpeed": [ 7535,     0,    0], "Radius": 20000, "Color": "Purple"  } },
+
+        // --- 750 km band (r=7,121,000 · v=7,482 m/s) --- Magenta, i=165°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 7121000,       0,       0], "CurrentSpeed": [    0, -7227, 1936], "Radius": 20000, "Color": "Magenta" } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-6878000, 1843000], "CurrentSpeed": [-7482,     0,    0], "Radius": 20000, "Color": "Magenta" } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-7121000,       0,       0], "CurrentSpeed": [    0,  7227,-1936], "Radius": 20000, "Color": "Magenta" } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 6878000,-1843000], "CurrentSpeed": [ 7482,     0,    0], "Radius": 20000, "Color": "Magenta" } },
+
+        // --- 850 km band (r=7,221,000 · v=7,430 m/s) --- Blue, i=20°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 7221000,       0,       0], "CurrentSpeed": [    0,  6982, 2541], "Radius": 20000, "Color": "Blue"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 6785000, 2470000], "CurrentSpeed": [-7430,     0,    0], "Radius": 20000, "Color": "Blue"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-7221000,       0,       0], "CurrentSpeed": [    0, -6982,-2541], "Radius": 20000, "Color": "Blue"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-6785000,-2470000], "CurrentSpeed": [ 7430,     0,    0], "Radius": 20000, "Color": "Blue"    } },
+
+        // --- 900 km band (r=7,271,000 · v=7,405 m/s) --- Cyan, i=55°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 7271000,       0,       0], "CurrentSpeed": [    0,  4248, 6066], "Radius": 20000, "Color": "Cyan"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 4170000, 5956000], "CurrentSpeed": [-7405,     0,    0], "Radius": 20000, "Color": "Cyan"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-7271000,       0,       0], "CurrentSpeed": [    0, -4248,-6066], "Radius": 20000, "Color": "Cyan"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-4170000,-5956000], "CurrentSpeed": [ 7405,     0,    0], "Radius": 20000, "Color": "Cyan"    } },
+
+        // --- 950 km band (r=7,321,000 · v=7,381 m/s) --- Green, i=110°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 7321000,       0,       0], "CurrentSpeed": [    0, -2524, 6936], "Radius": 20000, "Color": "Green"   } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-2504000, 6881000], "CurrentSpeed": [-7381,     0,    0], "Radius": 20000, "Color": "Green"   } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-7321000,       0,       0], "CurrentSpeed": [    0,  2524,-6936], "Radius": 20000, "Color": "Green"   } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 2504000,-6881000], "CurrentSpeed": [ 7381,     0,    0], "Radius": 20000, "Color": "Green"   } },
+
+        // --- 1100 km band (r=7,471,000 · v=7,304 m/s) --- Orange, i=35°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 7471000,       0,       0], "CurrentSpeed": [    0,  5984, 4189], "Radius": 20000, "Color": "Orange"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 6120000, 4284000], "CurrentSpeed": [-7304,     0,    0], "Radius": 20000, "Color": "Orange"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-7471000,       0,       0], "CurrentSpeed": [    0, -5984,-4189], "Radius": 20000, "Color": "Orange"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-6120000,-4284000], "CurrentSpeed": [ 7304,     0,    0], "Radius": 20000, "Color": "Orange"  } },
+
+        // --- 1150 km band (r=7,521,000 · v=7,280 m/s) --- Purple, i=125°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 7521000,       0,       0], "CurrentSpeed": [    0, -4176, 5964], "Radius": 20000, "Color": "Purple"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-4313000, 6161000], "CurrentSpeed": [-7280,     0,    0], "Radius": 20000, "Color": "Purple"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-7521000,       0,       0], "CurrentSpeed": [    0,  4176,-5964], "Radius": 20000, "Color": "Purple"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 4313000,-6161000], "CurrentSpeed": [ 7280,     0,    0], "Radius": 20000, "Color": "Purple"  } },
+
+        // --- 1300 km band (r=7,671,000 · v=7,209 m/s) --- Magenta, i=10°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 7671000,       0,       0], "CurrentSpeed": [    0,  7099, 1251], "Radius": 20000, "Color": "Magenta" } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 7553000, 1332000], "CurrentSpeed": [-7209,     0,    0], "Radius": 20000, "Color": "Magenta" } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-7671000,       0,       0], "CurrentSpeed": [    0, -7099,-1251], "Radius": 20000, "Color": "Magenta" } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-7553000,-1332000], "CurrentSpeed": [ 7209,     0,    0], "Radius": 20000, "Color": "Magenta" } },
+
+        // --- 1400 km band (r=7,771,000 · v=7,162 m/s) --- Blue, i=80°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 7771000,       0,       0], "CurrentSpeed": [    0,  1243, 7053], "Radius": 20000, "Color": "Blue"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 1349000, 7653000], "CurrentSpeed": [-7162,     0,    0], "Radius": 20000, "Color": "Blue"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-7771000,       0,       0], "CurrentSpeed": [    0, -1243,-7053], "Radius": 20000, "Color": "Blue"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-1349000,-7653000], "CurrentSpeed": [ 7162,     0,    0], "Radius": 20000, "Color": "Blue"    } },
+
+        // --- 1500 km band (r=7,871,000 · v=7,116 m/s) --- Cyan, i=115°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 7871000,       0,       0], "CurrentSpeed": [    0, -3007, 6448], "Radius": 20000, "Color": "Cyan"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-3325000, 7135000], "CurrentSpeed": [-7116,     0,    0], "Radius": 20000, "Color": "Cyan"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-7871000,       0,       0], "CurrentSpeed": [    0,  3007,-6448], "Radius": 20000, "Color": "Cyan"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 3325000,-7135000], "CurrentSpeed": [ 7116,     0,    0], "Radius": 20000, "Color": "Cyan"    } },
+
+        // --- 1600 km band (r=7,971,000 · v=7,070 m/s) --- Green, i=140°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 7971000,       0,       0], "CurrentSpeed": [    0, -5415, 4545], "Radius": 20000, "Color": "Green"   } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-6105000, 5124000], "CurrentSpeed": [-7070,     0,    0], "Radius": 20000, "Color": "Green"   } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-7971000,       0,       0], "CurrentSpeed": [    0,  5415,-4545], "Radius": 20000, "Color": "Green"   } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 6105000,-5124000], "CurrentSpeed": [ 7070,     0,    0], "Radius": 20000, "Color": "Green"   } },
+
+        // --- 1800 km band (r=8,171,000 · v=6,984 m/s) --- Orange, i=25°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 8171000,       0,       0], "CurrentSpeed": [    0,  6330, 2951], "Radius": 20000, "Color": "Orange"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 7405000, 3453000], "CurrentSpeed": [-6984,     0,    0], "Radius": 20000, "Color": "Orange"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-8171000,       0,       0], "CurrentSpeed": [    0, -6330,-2951], "Radius": 20000, "Color": "Orange"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-7405000,-3453000], "CurrentSpeed": [ 6984,     0,    0], "Radius": 20000, "Color": "Orange"  } },
+
+        // --- 2000 km band (r=8,371,000 · v=6,901 m/s) --- Purple, i=70°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 8371000,       0,       0], "CurrentSpeed": [    0,  2360, 6485], "Radius": 20000, "Color": "Purple"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 2863000, 7865000], "CurrentSpeed": [-6901,     0,    0], "Radius": 20000, "Color": "Purple"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-8371000,       0,       0], "CurrentSpeed": [    0, -2360,-6485], "Radius": 20000, "Color": "Purple"  } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-2863000,-7865000], "CurrentSpeed": [ 6901,     0,    0], "Radius": 20000, "Color": "Purple"  } },
+
+        // --- 2200 km band (r=8,571,000 · v=6,820 m/s) --- Magenta, i=155°
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 8571000,       0,       0], "CurrentSpeed": [    0, -6181, 2882], "Radius": 20000, "Color": "Magenta" } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-7768000, 3622000], "CurrentSpeed": [-6820,     0,    0], "Radius": 20000, "Color": "Magenta" } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-8571000,       0,       0], "CurrentSpeed": [    0,  6181,-2882], "Radius": 20000, "Color": "Magenta" } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 7768000,-3622000], "CurrentSpeed": [ 6820,     0,    0], "Radius": 20000, "Color": "Magenta" } },
+
+        // --- 2500 km band (r=8,871,000 · v=6,703 m/s) --- Blue, i=0° equatorial
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [ 8871000,       0,       0], "CurrentSpeed": [    0,  6703,    0], "Radius": 20000, "Color": "Blue"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0, 8871000,       0], "CurrentSpeed": [-6703,     0,    0], "Radius": 20000, "Color": "Blue"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [-8871000,       0,       0], "CurrentSpeed": [    0, -6703,    0], "Radius": 20000, "Color": "Blue"    } },
+        { "type": "spawn", "entity": "Satellite", "properties": { "Position": [       0,-8871000,       0], "CurrentSpeed": [ 6703,     0,    0], "Radius": 20000, "Color": "Blue"    } },
+
+        // --- 700 km target --- Red, CCW — stays fixed across all scenarios
+        {
+          "type": "spawn", "entity": "Satellite",
+          "properties": {
+            "Position": [7071000, 0, 0],
+            "CurrentSpeed": [0, 7508, 0],
+            "Radius": 10000,
+            "Color": "Red"
+          }
+        }
+      ]
+    }
+  ],
+
+  // =========================================================================
+  // SCENARIOS — each spawns one Yellow candidate at a different starting angle
+  // on the 700 km orbit.  All CW candidates are on a counter-orbit to Red.
+  // ω ≈ 0.001062 rad/s  →  collision time t ≈ α / (2ω)
+  // =========================================================================
+  "scenarios": [
+
+    // ── Scenario A ─────────────────────────────────────────────────────────
+    // α = 2·ω·50 ≈ 0.1062 rad (≈6.1°)   expected crash at step ~50
+    {
+      "label": "A — CW counter-orbit, α≈6°, crash ~50 s",
+      "actions": [
+        {
+          "type": "spawn", "entity": "Satellite",
+          "properties": {
+            "Position": [7031000, 750000, 0],
+            "CurrentSpeed": [796, -7465, 0],
+            "Radius": 10000,
+            "Color": "Yellow"
+          }
+        }
+      ]
+    },
+
+    // ── Scenario B ─────────────────────────────────────────────────────────
+    // α = 2·ω·200 ≈ 0.4248 rad (≈24.3°)   expected crash at step ~200
+    {
+      "label": "B — CW counter-orbit, α≈24°, crash ~200 s",
+      "actions": [
+        {
+          "type": "spawn", "entity": "Satellite",
+          "properties": {
+            "Position": [6436000, 2929000, 0],
+            "CurrentSpeed": [3109, -6833, 0],
+            "Radius": 10000,
+            "Color": "Yellow"
+          }
+        }
+      ]
+    },
+
+    // ── Scenario C ─────────────────────────────────────────────────────────
+    // α = 2·ω·400 ≈ 0.8496 rad (≈48.7°)   expected crash at step ~400
+    {
+      "label": "C — CW counter-orbit, α≈49°, crash ~400 s",
+      "actions": [
+        {
+          "type": "spawn", "entity": "Satellite",
+          "properties": {
+            "Position": [4669000, 5312000, 0],
+            "CurrentSpeed": [5640, -4958, 0],
+            "Radius": 10000,
+            "Color": "Yellow"
+          }
+        }
+      ]
+    },
+
+    // ── Scenario D ─────────────────────────────────────────────────────────
+    // α = 2·ω·600 ≈ 1.2744 rad (≈73°)   expected crash at step ~600
+    {
+      "label": "D — CW counter-orbit, α≈73°, crash ~600 s",
+      "actions": [
+        {
+          "type": "spawn", "entity": "Satellite",
+          "properties": {
+            "Position": [2086000, 6757000, 0],
+            "CurrentSpeed": [7174, -2215, 0],
+            "Radius": 10000,
+            "Color": "Yellow"
+          }
+        }
+      ]
+    },
+
+    // ── Scenario E ─────────────────────────────────────────────────────────
+    // α = 2·ω·800 ≈ 1.6992 rad (≈97°)   expected crash at step ~800
+    {
+      "label": "E — CW counter-orbit, α≈97°, crash ~800 s",
+      "actions": [
+        {
+          "type": "spawn", "entity": "Satellite",
+          "properties": {
+            "Position": [-923000, 7011000, 0],
+            "CurrentSpeed": [7441, 980, 0],
+            "Radius": 10000,
+            "Color": "Yellow"
+          }
+        }
+      ]
+    },
+
+    // ── Scenario F ─────────────────────────────────────────────────────────
+    // α = 2·ω·1000 ≈ 2.124 rad (≈122°)   expected crash at step ~1000
+    {
+      "label": "F — CW counter-orbit, α≈122°, crash ~1000 s",
+      "actions": [
+        {
+          "type": "spawn", "entity": "Satellite",
+          "properties": {
+            "Position": [-3718000, 6015000, 0],
+            "CurrentSpeed": [6387, 3948, 0],
+            "Radius": 10000,
+            "Color": "Yellow"
+          }
+        }
+      ]
+    },
+
+    // ── Scenario G ─────────────────────────────────────────────────────────
+    // α = 2·ω·1200 ≈ 2.5488 rad (≈146°)   expected crash at step ~1200
+    {
+      "label": "G — CW counter-orbit, α≈146°, crash ~1200 s",
+      "actions": [
+        {
+          "type": "spawn", "entity": "Satellite",
+          "properties": {
+            "Position": [-5862000, 3955000, 0],
+            "CurrentSpeed": [4198, 6225, 0],
+            "Radius": 10000,
+            "Color": "Yellow"
+          }
+        }
+      ]
+    },
+
+    // ── Scenario H ─────────────────────────────────────────────────────────
+    // α = 2·ω·1350 ≈ 2.8674 rad (≈164°)   expected crash at step ~1350
+    {
+      "label": "H — CW counter-orbit, α≈164°, crash ~1350 s",
+      "actions": [
+        {
+          "type": "spawn", "entity": "Satellite",
+          "properties": {
+            "Position": [-6801000, 1938000, 0],
+            "CurrentSpeed": [2058, 7220, 0],
+            "Radius": 10000,
+            "Color": "Yellow"
+          }
+        }
+      ]
+    },
+
+    // ── Scenario I ─────────────────────────────────────────────────────────
+    // α = π ≈ 3.1416 rad (180°) — identical placement to TC18 Yellow candidate
+    // expected crash at step ~1479
+    {
+      "label": "I — CW counter-orbit, α=180° (TC18 clone), crash ~1479 s",
+      "actions": [
+        {
+          "type": "spawn", "entity": "Satellite",
+          "properties": {
+            "Position": [-7071000, 0, 0],
+            "CurrentSpeed": [0, 7508, 0],
+            "Radius": 10000,
+            "Color": "Yellow"
+          }
+        }
+      ]
+    },
+
+    // ── Scenario J ─────────────────────────────────────────────────────────
+    // CCW co-orbital, 90° ahead of Red — same period, constant 90° separation
+    // NO CRASH expected (simulation runs all 1500 steps)
+    {
+      "label": "J — CCW co-orbit, 90° offset — NO CRASH expected",
+      "actions": [
+        {
+          "type": "spawn", "entity": "Satellite",
+          "properties": {
+            "Position": [0, 7071000, 0],
+            "CurrentSpeed": [-7508, 0, 0],
+            "Radius": 10000,
+            "Color": "Yellow"
+          }
+        }
+      ]
+    }
+
+  ]
+}

@@ -136,7 +136,8 @@ public class ServiceManager : IInnerServiceFactory
         await innerServiceManager.InitializeAsync(setupName);
 
         var setup = CompositeServiceSetupLoader.LoadConfiguration(setupName);
-        return new InnerService(innerServiceManager, entityManager, stateManager, setup.SimulationSteps);
+        var timeStepSeconds = (double)CompositeServiceSetupLoader.GetTimeStepSeconds(setup.TimeStep);
+        return new InnerService(innerServiceManager, entityManager, stateManager, setup.SimulationSteps, timeStepSeconds);
     }
 
     /// <summary>

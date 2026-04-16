@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Simulation.EntityManager;
 using Simulation.Interfaces;
+using Simulation.PropertyTypes;
 using Simulation.ServiceManager.ExternalServices;
 
 /// <summary>
@@ -38,6 +39,7 @@ public class TestExecutorService
     private string _tcDisplayName = string.Empty;
     private IReadOnlyList<string> _headerLines = Array.Empty<string>();
     private TestSimulationService? _testSimulationService;
+    private WhatIfService? _whatIfService;
 
     private readonly SensingService  _sensingService  = new();
     private readonly ActuatingService _actuatingService = new();
@@ -70,7 +72,7 @@ public class TestExecutorService
     /// <param name="innerSetupOverride">
     ///   Optional override for the inner physics setup name declared in the TC file.
     /// </param>
-    public Task InitializeAsync(string tcFilePath, string? innerSetupOverride = null)
+    public async Task InitializeAsync(string tcFilePath, string? innerSetupOverride = null)
     {
         if (!File.Exists(tcFilePath))
             throw new FileNotFoundException($"Test case file not found: {tcFilePath}");
@@ -83,7 +85,42 @@ public class TestExecutorService
 
         var innerSetup = innerSetupOverride ?? config.InnerSetup;
 
-        var step0Actions = ParseActions(
+        // --- WhatIfRunSetup path ---
+        if (config.OuterSetup.Equals("WhatIfRunSetup", StringComparison.OrdinalIgnoreCase))
+        {
+            var step0Actions = ParseActions(
+                config.Steps.FirstOrDefault(s => s.Step == 0)?.Actions ?? new List<ActionConfig>(),
+                entityLibrary);
+
+            var baseEntities = step0Actions
+                .Select(BuildBaseEntitySnapshot)
+                .ToList();
+
+            var scenarios = (config.Scenarios ?? new List<WhatIfScenarioDef>())
+                .Select(def =>
+                {
+                    var candidateActions = ParseActions(def.Actions, entityLibrary);
+                    if (candidateActions.Count != 1)
+                        throw new InvalidOperationException(
+                            $"Scenario '{def.Label}' has {candidateActions.Count} candidate actions; " +
+                            "each what-if scenario must declare exactly one candidate entity.");
+                    return (def.Label, BuildBaseEntitySnapshot(candidateActions[0]));
+                })
+                .ToList();
+
+            var loaderService = new WhatIfCaseLoaderService(_entityManager);
+            await loaderService.InitializeAsync(innerSetup, baseEntities, scenarios);
+
+            var whatIfService = new WhatIfService(_innerFactory, _entityManager);
+            await whatIfService.InitializeAsync(loaderService.InnerSetupName);
+
+            _whatIfService = whatIfService;
+            return;
+        }
+
+        // --- Default SimulationRunSetup path ---
+
+        var initialActions = ParseActions(
             config.Steps.FirstOrDefault(s => s.Step == 0)?.Actions ?? new List<ActionConfig>(),
             entityLibrary);
 
@@ -94,10 +131,10 @@ public class TestExecutorService
                 s => ParseActions(s.Actions, entityLibrary));
 
         _testSimulationService = new TestSimulationService(
-            innerSetup, step0Actions, midSimActions, _innerFactory,
+            innerSetup, initialActions, midSimActions, _innerFactory,
             _printEveryNSteps, _printOnlyFirstAndLast);
 
-        return Task.CompletedTask;
+        return;
     }
 
     // -------------------------------------------------------------------------
@@ -110,7 +147,7 @@ public class TestExecutorService
     /// </summary>
     public async Task RunAsync(CancellationToken ct, PauseHandle pauseHandle)
     {
-        if (_testSimulationService == null)
+        if (_whatIfService == null && _testSimulationService == null)
             throw new InvalidOperationException("Call InitializeAsync before RunAsync.");
 
         PrintBanner(_headerLines);
@@ -122,7 +159,10 @@ public class TestExecutorService
             await pauseHandle.WaitIfPausedAsync(ct);
             ct.ThrowIfCancellationRequested();
 
-            await _testSimulationService.ExecuteAsync(ct, pauseHandle);
+            if (_whatIfService != null)
+                await _whatIfService.ExecuteAsync(ct, pauseHandle);
+            else
+                await _testSimulationService!.ExecuteAsync(ct, pauseHandle);
 
             await pauseHandle.WaitIfPausedAsync(ct);
             ct.ThrowIfCancellationRequested();
@@ -229,6 +269,24 @@ public class TestExecutorService
                 ? BuildProperties(actionConfig.Properties)
                 : null,
         };
+    }
+
+    private static BaseEntitySnapshot BuildBaseEntitySnapshot(TestActionDefinition a)
+    {
+        var props = a.PropertyOverrides != null
+            ? MergeProperties(a.Entity.Properties, a.PropertyOverrides)
+            : new Dictionary<string, object>(a.Entity.Properties);
+        return new BaseEntitySnapshot(a.Entity.Name, a.Entity.Description, props);
+    }
+
+    private static Dictionary<string, object> MergeProperties(
+        Dictionary<string, object> baseProps,
+        Dictionary<string, object> overrides)
+    {
+        var merged = new Dictionary<string, object>(baseProps);
+        foreach (var (k, v) in overrides)
+            merged[k] = v;
+        return merged;
     }
 
     private static Dictionary<string, object> BuildProperties(
@@ -361,6 +419,18 @@ public class TestExecutorService
 
         [JsonPropertyName("steps")]
         public required List<StepConfig> Steps { get; init; }
+
+        [JsonPropertyName("scenarios")]
+        public List<WhatIfScenarioDef>? Scenarios { get; init; }
+    }
+
+    private record WhatIfScenarioDef
+    {
+        [JsonPropertyName("label")]
+        public required string Label { get; init; }
+
+        [JsonPropertyName("actions")]
+        public required List<ActionConfig> Actions { get; init; }
     }
 
     private record StepConfig

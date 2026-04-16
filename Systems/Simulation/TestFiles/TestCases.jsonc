@@ -21,6 +21,7 @@
     "Cases/TC16_OrbitalEarthMoonSun.jsonc",
     "Cases/TC17_SatelliteCollisionSingle.jsonc",
     "Cases/TC18_MultiConstellationCandidateSingle.jsonc",
-    "Cases/TC19_MultiConstellation20InitCrashTarget.jsonc"
+    "Cases/TC19_MultiConstellation20InitCrashTarget.jsonc",
+    "Cases/TC20_MultiConstellationWhatIf.jsonc"
   ]
 }

@@ -17,6 +17,12 @@ public interface IInnerService
     int SimulationSteps { get; }
 
     /// <summary>
+    /// Real-world seconds represented by a single simulation step.
+    /// Derived from the timeStep config of the loaded setup.
+    /// </summary>
+    double TimeStepSeconds { get; }
+
+    /// <summary>
     /// Spawns an entity in the inner store and returns the created entity with its assigned ID.
     /// </summary>
     Task<Entity> CreateEntityAsync(string name, Dictionary<string, object> properties, string? description = null);
@@ -54,4 +60,14 @@ public interface IInnerService
     /// Called every step so the visualization stays live regardless of print frequency settings.
     /// </summary>
     Task UpdateVisualizationAsync();
+
+    /// <summary>
+    /// <summary>
+    /// Returns all entities that currently carry the given property, together with
+    /// the raw property value and the entity name.
+    /// Returns an empty list when no entities have the property.
+    /// This is intentionally generic — callers that need domain knowledge (e.g.
+    /// casting to <c>CollisionRecord</c>) perform that logic themselves.
+    /// </summary>
+    Task<IReadOnlyList<(int EntityId, string EntityName, object? Value)>> GetPropertyValuesAsync(string propertyType);
 }

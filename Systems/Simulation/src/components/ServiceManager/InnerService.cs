@@ -19,6 +19,7 @@ internal sealed class InnerService : IInnerService
     private readonly StateManager _stateManager;
 
     public int SimulationSteps { get; }
+    public double TimeStepSeconds { get; }
 
     public bool SilentMode
     {
@@ -30,12 +31,14 @@ internal sealed class InnerService : IInnerService
         ServiceManager serviceManager,
         EntityManager entityManager,
         StateManager stateManager,
-        int simulationSteps)
+        int simulationSteps,
+        double timeStepSeconds)
     {
         _serviceManager = serviceManager;
         _entityManager = entityManager;
         _stateManager = stateManager;
         SimulationSteps = simulationSteps;
+        TimeStepSeconds = timeStepSeconds;
     }
 
     public Task<Entity> CreateEntityAsync(string name, Dictionary<string, object> properties, string? description = null)
@@ -55,4 +58,22 @@ internal sealed class InnerService : IInnerService
 
     public Task UpdateVisualizationAsync()
         => _stateManager.NotifyStateUpdatedAsync();
+
+    public async Task<IReadOnlyList<(int EntityId, string EntityName, object? Value)>> GetPropertyValuesAsync(string propertyType)
+    {
+        var values = await _stateManager.GetPropertiesByTypeAsync(propertyType);
+        if (values == null || values.Count == 0)
+            return Array.Empty<(int, string, object?)>();
+
+        var entityIds = _entityManager.GetEntitiesForProperty(propertyType);
+        var result    = new List<(int, string, object?)>(entityIds.Count);
+
+        for (int i = 0; i < entityIds.Count && i < values.Count; i++)
+        {
+            var entity = _entityManager.GetEntity(entityIds[i]);
+            result.Add((entityIds[i], entity?.Name ?? $"Entity_{entityIds[i]}", values[i]));
+        }
+
+        return result;
+    }
 }

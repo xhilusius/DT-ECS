@@ -20,9 +20,28 @@ namespace Simulation.PropertyTypes;
 ///   Human-readable summary string produced by the inner simulation
 ///   (e.g. collision details, or "No collision detected").
 /// </param>
-public record ScenarioResult(int ScenarioEntityId, bool Completed, int StepsExecuted, string Summary)
+public record ScenarioResult(
+    int ScenarioEntityId,
+    bool Completed,
+    int StepsExecuted,
+    string Summary,
+    string Label = "",
+    bool CollisionDetected = false,
+    int CollisionAtStep = 0,
+    int CollidedWithEntityId = -1,
+    string CollidedWithEntityName = "",
+    double[]? CollisionPosition = null)
     : IPropertyValue
 {
+    /// <summary>
+    /// Placeholder instance used when a scenario entity is first created.
+    /// <see cref="Simulation.ServiceManager.CompositeServices.WhatIfService"/> overwrites
+    /// this with the real result after the inner simulation completes.
+    /// </summary>
+    public static ScenarioResult Default => new(0, false, 0, string.Empty);
+
     public string GetPrintable() =>
-        $"Completed={Completed} | Steps={StepsExecuted} | {Summary}";
+        CollisionDetected
+            ? $"[{Label}] CRASH at step {CollisionAtStep} with '{CollidedWithEntityName}'"
+            : $"[{Label}] NO CRASH — {StepsExecuted} steps completed";
 }
