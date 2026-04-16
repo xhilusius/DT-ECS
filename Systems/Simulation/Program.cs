@@ -51,6 +51,22 @@ while (continueRunning)
         else Console.WriteLine("⚠️  WARNING: Running without visualization connection.\n");
     }
 
+    // Print options
+    bool printOnlyFirstAndLast = false;
+    int printEveryNSteps = 1;
+    Console.Write("Print only first and last state? (y/n): ");
+    if (string.Equals(Console.ReadLine(), "y", StringComparison.OrdinalIgnoreCase))
+    {
+        printOnlyFirstAndLast = true;
+    }
+    else
+    {
+        Console.Write("Print every N steps (Enter for every step): ");
+        var nIn = Console.ReadLine();
+        if (!string.IsNullOrWhiteSpace(nIn) && int.TryParse(nIn, out var n) && n > 0)
+            printEveryNSteps = n;
+    }
+
     Console.Write("Press Enter to START the simulation (or 'n' to cancel): ");
     if (string.Equals(Console.ReadLine(), "n", StringComparison.OrdinalIgnoreCase))
     {
@@ -58,7 +74,7 @@ while (continueRunning)
         continue;
     }
 
-    var ic = await SimulationInitializer.CreateAsync(selected.FilePath, visualizationMapper, configOverride);
+    var ic = await SimulationInitializer.CreateAsync(selected.FilePath, visualizationMapper, configOverride, printOnlyFirstAndLast, printEveryNSteps);
     await ic.RunAsync();
 
     // Post-run

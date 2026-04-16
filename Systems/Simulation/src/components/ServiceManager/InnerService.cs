@@ -2,6 +2,7 @@ namespace Simulation.ServiceManager;
 
 using Simulation.EntityManager;
 using Simulation.Interfaces;
+using Simulation.StateManager;
 
 /// <summary>
 /// Concrete implementation of <see cref="IInnerService"/>.
@@ -15,16 +16,25 @@ internal sealed class InnerService : IInnerService
 {
     private readonly ServiceManager _serviceManager;
     private readonly EntityManager _entityManager;
+    private readonly StateManager _stateManager;
 
     public int SimulationSteps { get; }
+
+    public bool SilentMode
+    {
+        get => _stateManager.SilentMode;
+        set => _stateManager.SilentMode = value;
+    }
 
     internal InnerService(
         ServiceManager serviceManager,
         EntityManager entityManager,
+        StateManager stateManager,
         int simulationSteps)
     {
         _serviceManager = serviceManager;
         _entityManager = entityManager;
+        _stateManager = stateManager;
         SimulationSteps = simulationSteps;
     }
 
@@ -39,4 +49,10 @@ internal sealed class InnerService : IInnerService
 
     public Task StopAsync()
         => _serviceManager.StopAsync();
+
+    public Task ReportStateAsync(string description)
+        => _stateManager.ReportStateAsync(description);
+
+    public Task UpdateVisualizationAsync()
+        => _stateManager.NotifyStateUpdatedAsync();
 }

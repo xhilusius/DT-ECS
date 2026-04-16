@@ -42,14 +42,20 @@ public class TestExecutorService
     private readonly SensingService  _sensingService  = new();
     private readonly ActuatingService _actuatingService = new();
 
+    private readonly int _printEveryNSteps;
+    private readonly bool _printOnlyFirstAndLast;
+
     // -------------------------------------------------------------------------
     // Constructor
     // -------------------------------------------------------------------------
 
-    public TestExecutorService(EntityManager entityManager, IInnerServiceFactory innerFactory)
+    public TestExecutorService(EntityManager entityManager, IInnerServiceFactory innerFactory,
+        int printEveryNSteps = 1, bool printOnlyFirstAndLast = false)
     {
         _entityManager = entityManager ?? throw new ArgumentNullException(nameof(entityManager));
         _innerFactory  = innerFactory  ?? throw new ArgumentNullException(nameof(innerFactory));
+        _printEveryNSteps = printEveryNSteps > 0 ? printEveryNSteps : 1;
+        _printOnlyFirstAndLast = printOnlyFirstAndLast;
     }
 
     // -------------------------------------------------------------------------
@@ -88,7 +94,8 @@ public class TestExecutorService
                 s => ParseActions(s.Actions, entityLibrary));
 
         _testSimulationService = new TestSimulationService(
-            innerSetup, step0Actions, midSimActions, _innerFactory);
+            innerSetup, step0Actions, midSimActions, _innerFactory,
+            _printEveryNSteps, _printOnlyFirstAndLast);
 
         return Task.CompletedTask;
     }

@@ -24,7 +24,9 @@ public static class SimulationInitializer
     public static async Task<IC> CreateAsync(
         string tcFilePath,
         VisualizationMapper? visualizationMapper = null,
-        string? innerSetupOverride = null)
+        string? innerSetupOverride = null,
+        bool printOnlyFirstAndLast = false,
+        int printEveryNSteps = 1)
     {
         var repositoryManager = new RM();
         var entityManager     = new EM();
@@ -38,8 +40,12 @@ public static class SimulationInitializer
 
         // ServiceManager is passed as IInnerServiceFactory only — no InitializeAsync call here.
         var serviceManager = new SM(transformExecutor);
+        // MVP TEMPORARY: Pass the mapper through ServiceManager so inner simulation stacks
+        // created by CreateInnerServiceAsync receive it. Remove once visualization is
+        // injected via a proper interface rather than through ServiceManager.
+        serviceManager.SetVisualizationMapper(visualizationMapper);
 
-        var executorService = new TestExecutorService(entityManager, serviceManager);
+        var executorService = new TestExecutorService(entityManager, serviceManager, printEveryNSteps, printOnlyFirstAndLast);
         await executorService.InitializeAsync(tcFilePath, innerSetupOverride);
 
         return new IC(entityManager, executorService);

@@ -716,12 +716,13 @@ public class StateManager
 
     /// <summary>
     /// MVP: Notify visualization system of state updates (positions changed).
-    /// Called after each simulation step in ReportStateAsync.
+    /// Called after each simulation step. Can also be called directly to push visualization
+    /// updates without triggering a console print.
     /// 
     /// DEPENDENCY: Requires Position property.
     /// Only sends data for entities that have valid Position values.
     /// </summary>
-    private async Task NotifyStateUpdatedAsync()
+    public async Task NotifyStateUpdatedAsync()
     {
         if (_visualizationMapper == null)
             return; // No visualization configured, skip
@@ -747,7 +748,7 @@ public class StateManager
 
             if (visualizationData.Count > 0)
             {
-                _visualizationMapper.NotifyStateUpdated(visualizationData);
+                await _visualizationMapper.NotifyStateUpdatedAsync(visualizationData);
             }
         }
         catch (Exception ex)

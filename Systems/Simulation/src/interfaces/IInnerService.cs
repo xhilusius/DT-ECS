@@ -35,4 +35,23 @@ public interface IInnerService
     /// Stops and cleans up the inner simulation.
     /// </summary>
     Task StopAsync();
+
+    /// <summary>
+    /// Controls whether state reporting is suppressed for this inner service.
+    /// When true, <see cref="ReportStateAsync"/> becomes a no-op.
+    /// </summary>
+    bool SilentMode { get; set; }
+
+    /// <summary>
+    /// Explicitly triggers a state report for the current inner simulation state.
+    /// Called by the orchestrating composite service at chosen steps.
+    /// </summary>
+    /// <param name="description">Step label shown in the report header.</param>
+    Task ReportStateAsync(string description);
+
+    /// <summary>
+    /// Pushes the current state to the external visualization tool without printing to console.
+    /// Called every step so the visualization stays live regardless of print frequency settings.
+    /// </summary>
+    Task UpdateVisualizationAsync();
 }

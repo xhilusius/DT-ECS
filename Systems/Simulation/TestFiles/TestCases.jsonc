@@ -19,6 +19,8 @@
     "Cases/TC14_EntityRemovalNameReuse.jsonc",
     "Cases/TC15_OrbitalMoonEarth.jsonc",
     "Cases/TC16_OrbitalEarthMoonSun.jsonc",
-    "Cases/TC17_SatelliteCollisionSingle.jsonc"
+    "Cases/TC17_SatelliteCollisionSingle.jsonc",
+    "Cases/TC18_MultiConstellationCandidateSingle.jsonc",
+    "Cases/TC19_MultiConstellation20InitCrashTarget.jsonc"
   ]
 }

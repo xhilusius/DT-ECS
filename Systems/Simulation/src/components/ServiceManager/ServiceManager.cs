@@ -44,6 +44,12 @@ public class ServiceManager : IInnerServiceFactory
     private bool _parallelExecution = false;
     private int _stepDelayMs = 0;
     private int _simulationSteps = 10;
+
+    // MVP: Temporary — visualization mapper is held here only so CreateInnerServiceAsync
+    // can forward it to each inner StateManager. The proper solution is to inject
+    // visualization through a dedicated interface rather than coupling ServiceManager
+    // to VisualizationMapper directly.
+    private VisualizationMapper? _visualizationMapper = null;
     
     /// <summary>
     /// Maps each service name to its batch index.
@@ -82,6 +88,19 @@ public class ServiceManager : IInnerServiceFactory
     }
 
     /// <summary>
+    /// MVP TEMPORARY: Stores the visualization mapper so every inner service stack
+    /// created via <see cref="CreateInnerServiceAsync"/> can forward updates to it.
+    /// 
+    /// FUTURE CHANGE: Remove this method once visualization is injected through a
+    /// proper interface (e.g. IVisualizationService) rather than passed through
+    /// ServiceManager.
+    /// </summary>
+    public void SetVisualizationMapper(VisualizationMapper? mapper)
+    {
+        _visualizationMapper = mapper;
+    }
+
+    /// <summary>
     /// Asynchronously initializes services by loading configuration from a setup folder.
     /// Must be called after construction to set up services.
     /// </summary>
@@ -106,12 +125,18 @@ public class ServiceManager : IInnerServiceFactory
         entityManager.SetStateManager(stateManager);
         stateManager.SilentMode = silent;
 
+        // MVP TEMPORARY: Forward the visualization mapper to the inner StateManager so
+        // entity spawn/update events are visible in the external visualization tool.
+        // Remove once visualization is injected through a proper interface.
+        if (_visualizationMapper != null)
+            stateManager.SetVisualizationMapper(_visualizationMapper);
+
         var transformExecutor = new TransformExecutor(stateManager);
         var innerServiceManager = new ServiceManager(transformExecutor);
         await innerServiceManager.InitializeAsync(setupName);
 
         var setup = CompositeServiceSetupLoader.LoadConfiguration(setupName);
-        return new InnerService(innerServiceManager, entityManager, setup.SimulationSteps);
+        return new InnerService(innerServiceManager, entityManager, stateManager, setup.SimulationSteps);
     }
 
     /// <summary>
@@ -390,9 +415,7 @@ public class ServiceManager : IInnerServiceFactory
         // Determine the number of batches
         if (_serviceToBatchIndex.Count == 0)
         {
-            int earlyStep;
-            lock (_stateLock) { _stepCounter++; earlyStep = _stepCounter; }
-            await _transformExecutor.GetStateManager().ReportStateAsync($"Simulation step {earlyStep} complete");
+            lock (_stateLock) { _stepCounter++; }
             return;
         }
 
@@ -455,14 +478,11 @@ public class ServiceManager : IInnerServiceFactory
             }
         }
 
-        // Increment and report step completion
-        int currentStep;
+        // Increment step counter (reporting is handled by the orchestrating composite service)
         lock (_stateLock)
         {
             _stepCounter++;
-            currentStep = _stepCounter;
         }
-        await _transformExecutor.GetStateManager().ReportStateAsync($"Simulation step {currentStep} complete");
     }
 
     /// <summary>

@@ -24,17 +24,23 @@ public class TestSimulationService : ICompositeService
     private readonly List<TestActionDefinition> _step0Actions;
     private readonly Dictionary<int, List<TestActionDefinition>> _midSimActions;
     private readonly IInnerServiceFactory _innerFactory;
+    private readonly int _printEveryNSteps;
+    private readonly bool _printOnlyFirstAndLast;
 
     public TestSimulationService(
         string innerSetup,
         List<TestActionDefinition> step0Actions,
         Dictionary<int, List<TestActionDefinition>> midSimActions,
-        IInnerServiceFactory innerFactory)
+        IInnerServiceFactory innerFactory,
+        int printEveryNSteps = 1,
+        bool printOnlyFirstAndLast = false)
     {
         _innerSetup  = innerSetup  ?? throw new ArgumentNullException(nameof(innerSetup));
         _step0Actions = step0Actions ?? throw new ArgumentNullException(nameof(step0Actions));
         _midSimActions = midSimActions ?? throw new ArgumentNullException(nameof(midSimActions));
         _innerFactory  = innerFactory  ?? throw new ArgumentNullException(nameof(innerFactory));
+        _printEveryNSteps = printEveryNSteps > 0 ? printEveryNSteps : 1;
+        _printOnlyFirstAndLast = printOnlyFirstAndLast;
     }
 
     /// <inheritdoc/>
@@ -54,6 +60,10 @@ public class TestSimulationService : ICompositeService
             await ApplyActionAsync(inner, action);
 
         int steps = inner.SimulationSteps;
+
+        // Always report the initial state before any physics step runs
+        await inner.ReportStateAsync($"Initial state (step 0 of {steps})");
+
         for (int step = 1; step <= steps; step++)
         {
             await pauseHandle.WaitIfPausedAsync(ct);
@@ -65,9 +75,20 @@ public class TestSimulationService : ICompositeService
                     await ApplyActionAsync(inner, action);
 
             await inner.OneStepAsync();
+            await inner.UpdateVisualizationAsync();
+
+            if (ShouldPrint(step, steps))
+                await inner.ReportStateAsync($"Step {step} of {steps}");
         }
 
         await inner.StopAsync();
+    }
+
+    private bool ShouldPrint(int step, int totalSteps)
+    {
+        if (_printOnlyFirstAndLast)
+            return step == totalSteps;
+        return (step % _printEveryNSteps == 0) || step == totalSteps;
     }
 
     /// <inheritdoc/>

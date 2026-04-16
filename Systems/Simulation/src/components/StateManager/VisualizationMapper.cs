@@ -41,7 +41,7 @@ public class VisualizationMapper
     private static readonly Lazy<HttpClient> _httpClient = new(() => 
     {
         var client = new HttpClient();
-        client.Timeout = TimeSpan.FromSeconds(5); // 5s timeout for POST requests
+        client.Timeout = TimeSpan.FromSeconds(1); // 1s timeout — local server only
         return client;
     });
 
@@ -187,7 +187,7 @@ public class VisualizationMapper
     /// HOT PATH: Called frequently during simulation - async to avoid blocking execution.
     /// DEPENDENCY: Entity data must include Position (required) and Radius (strongly recommended).
     /// </summary>
-    public void NotifyStateUpdated(IEnumerable<EntityVisualizationData> entities)
+    public async Task NotifyStateUpdatedAsync(IEnumerable<EntityVisualizationData> entities)
     {
         var entityList = entities.ToList();
         if (entityList.Count == 0)
@@ -195,8 +195,9 @@ public class VisualizationMapper
 
         var ballUpdates = entityList.Select(ConvertToBallUpdate).ToList();
 
-        // Send HTTP request to visualization server (fire-and-forget to avoid blocking)
-        _ = SendVisualizationUpdateAsync(ballUpdates);
+        // Await the HTTP request so only one update is in-flight at a time.
+        // Fire-and-forget caused a concurrent request storm that overwhelmed the local server.
+        await SendVisualizationUpdateAsync(ballUpdates);
 
         // Also notify local external receiver if configured (for testing/debugging)
         if (_externalReceiver != null)
