@@ -1,0 +1,43 @@
+{
+  "name": "Satellite setup: Sun introduced mid-run as new center of gravity",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "SatelliteSetup",
+  "description": "Earth (fixed) + orbiting satellite. Sun exists from step 0 but has no Mass, so NBodyGravityModel excludes it entirely. Halfway through, the Sun's Mass is added (making it a gravity source) and Earth gains CurrentSpeed/Displacement (making it move), so the Earth+satellite pair starts orbiting the Sun instead of staying fixed.",
+  "headerLines": [
+    "TEST CASE 23: Runtime Behavior Change - Sun Becomes Center of Gravity",
+    "Step 0: Earth fixed at origin (attracts satellite, itself immovable — no CurrentSpeed/Displacement)",
+    "Step 0: Satellite orbits Earth at LEO altitude",
+    "Step 0: Sun present at 1 AU but has no Mass — completely excluded from gravity calc",
+    "Step 750: Sun gains Mass (becomes a gravity source); Earth gains CurrentSpeed/Displacement (starts moving)",
+    "From step 750: Earth + satellite begin accelerating toward/around the Sun"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Earth_Fixed" },
+
+        { "type": "spawn", "entity": "Satellite", "properties": {
+            "Position": [6771000, 0, 0],
+            "CurrentSpeed": [0, 7672, 0],
+            "Radius": 10000,
+            "Color": "White"
+          }
+        },
+
+        { "type": "spawn", "entity": "Sun_NoMass", "properties": {
+            "Position": [1.496e11, 0, 0]
+          }
+        }
+      ]
+    },
+    {
+      "step": 750,
+      "actions": [
+        { "type": "addproperty", "entity": "Sun_NoMass", "properties": { "EntityId": 2, "PropertyType": "Mass", "Value": 1.989e30 } },
+        { "type": "addproperty", "entity": "Earth_Fixed", "properties": { "EntityId": 0, "PropertyType": "CurrentSpeed", "Value": [0, 29780, 0] } },
+        { "type": "addproperty", "entity": "Earth_Fixed", "properties": { "EntityId": 0, "PropertyType": "Displacement", "Value": [0, 0, 0] } }
+      ]
+    }
+  ]
+}

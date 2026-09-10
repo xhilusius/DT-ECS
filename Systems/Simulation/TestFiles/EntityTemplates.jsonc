@@ -39,6 +39,18 @@
         "Visualize": true
       }
     },
+    "Earth_Fixed": {
+      "name": "Earth",
+      "description": "Planet Earth - attracts others via N-body gravity but has no CurrentSpeed/Displacement, so PhysicsIntegrator/PositionModel skip it and it never moves. Add those two properties at runtime to let it start moving (e.g. once the Sun's mass is introduced).",
+      "properties": {
+        "Mass": 5.97e24,
+        "Position": [0, 0, 0],
+        "Radius": 6.371e6,
+        "GravityForce": [0, 0, 0],
+        "Visualize": true,
+        "Color": "Blue"
+      }
+    },
     "Moon": {
       "name": "Moon",
       "description": "Earth's Moon - N-body gravity only",
@@ -62,6 +74,16 @@
         "Displacement": [0, 0, 0],
         "CurrentSpeed": [0, 0, 0],
         "Radius": 6.96e8,
+        "GravityForce": [0, 0, 0],
+        "Visualize": true,
+        "Color": "Yellow"
+      }
+    },
+    "Sun_NoMass": {
+      "name": "Sun",
+      "description": "The Sun, present in the scene but without Mass, so NBodyGravityModel excludes it entirely (neither attracts nor is attracted) until Mass is added at runtime.",
+      "properties": {
+        "Position": [0, 0, 0],
         "GravityForce": [0, 0, 0],
         "Visualize": true,
         "Color": "Yellow"

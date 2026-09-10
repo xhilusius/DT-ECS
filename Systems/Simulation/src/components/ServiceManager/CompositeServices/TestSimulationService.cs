@@ -115,20 +115,47 @@ public class TestSimulationService : ICompositeService
         }
         else if (string.Equals(action.Type, "remove", StringComparison.OrdinalIgnoreCase))
         {
-            if (action.PropertyOverrides != null &&
-                action.PropertyOverrides.TryGetValue("EntityId", out var idObj) &&
-                int.TryParse(idObj.ToString(), out int entityId))
-            {
+            if (TryGetEntityId(action, out int entityId))
                 await inner.RemoveEntityAsync(entityId);
+            else
+                Console.WriteLine("Warning: remove action missing EntityId property — skipping.");
+        }
+        else if (string.Equals(action.Type, "addproperty", StringComparison.OrdinalIgnoreCase))
+        {
+            if (TryGetEntityId(action, out int entityId) &&
+                action.PropertyOverrides!.TryGetValue("PropertyType", out var propertyType) &&
+                action.PropertyOverrides.TryGetValue("Value", out var value))
+            {
+                await inner.AddPropertyToEntityAsync(entityId, propertyType.ToString()!, value);
             }
             else
             {
-                Console.WriteLine("Warning: remove action missing EntityId property — skipping.");
+                Console.WriteLine("Warning: addproperty action missing EntityId, PropertyType or Value — skipping.");
+            }
+        }
+        else if (string.Equals(action.Type, "removeproperty", StringComparison.OrdinalIgnoreCase))
+        {
+            if (TryGetEntityId(action, out int entityId) &&
+                action.PropertyOverrides!.TryGetValue("PropertyType", out var propertyType))
+            {
+                await inner.RemovePropertyFromEntityAsync(entityId, propertyType.ToString()!);
+            }
+            else
+            {
+                Console.WriteLine("Warning: removeproperty action missing EntityId or PropertyType — skipping.");
             }
         }
         else
         {
             Console.WriteLine($"Warning: unsupported action type '{action.Type}' — skipping.");
         }
+    }
+
+    private static bool TryGetEntityId(TestActionDefinition action, out int entityId)
+    {
+        entityId = 0;
+        return action.PropertyOverrides != null &&
+            action.PropertyOverrides.TryGetValue("EntityId", out var idObj) &&
+            int.TryParse(idObj.ToString(), out entityId);
     }
 }

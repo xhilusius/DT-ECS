@@ -1,0 +1,25 @@
+{
+  "name": "Runtime property addition: WindForce added mid-simulation",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "DefaultSetup",
+  "description": "Spawns a ball with gravity + drag only, then adds the WindForce property mid-run so wind starts acting on it",
+  "headerLines": [
+    "TEST CASE 22: Runtime Property Addition",
+    "Ball starts with gravity + drag only",
+    "At step 50, WindForce property is added — wind starts acting on it"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Ball_GravityDrag", "properties": { "Position": [-2, 50, 0], "Color": "Cyan", "Mass": 1.0, "Radius": 1.0 } }
+      ]
+    },
+    {
+      "step": 50,
+      "actions": [
+        { "type": "addproperty", "entity": "Ball_GravityDrag", "properties": { "EntityId": 0, "PropertyType": "WindForce", "Value": [0, 0, 0] } }
+      ]
+    }
+  ]
+}

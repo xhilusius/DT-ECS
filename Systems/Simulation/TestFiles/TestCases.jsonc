@@ -22,6 +22,9 @@
     "Cases/TC17_SatelliteCollisionSingle.jsonc",
     "Cases/TC18_MultiConstellationCandidateSingle.jsonc",
     "Cases/TC19_MultiConstellation20InitCrashTarget.jsonc",
-    "Cases/TC20_MultiConstellationWhatIf.jsonc"
+    "Cases/TC20_MultiConstellationWhatIf.jsonc",
+    "Cases/TC21_RuntimePropertyRemoval.jsonc",
+    "Cases/TC22_RuntimePropertyAddition.jsonc",
+    "Cases/TC23_RuntimeSunIntroduction.jsonc"
   ]
 }

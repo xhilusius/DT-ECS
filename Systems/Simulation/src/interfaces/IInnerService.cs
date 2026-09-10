@@ -33,6 +33,16 @@ public interface IInnerService
     Task RemoveEntityAsync(int entityId);
 
     /// <summary>
+    /// Adds a property to an existing entity in the inner store.
+    /// </summary>
+    Task AddPropertyToEntityAsync(int entityId, string propertyType, object initialValue);
+
+    /// <summary>
+    /// Removes a property from an existing entity in the inner store.
+    /// </summary>
+    Task RemovePropertyFromEntityAsync(int entityId, string propertyType);
+
+    /// <summary>
     /// Advances the inner simulation by one step.
     /// </summary>
     Task OneStepAsync();

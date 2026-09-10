@@ -47,6 +47,16 @@ internal sealed class InnerService : IInnerService
     public Task RemoveEntityAsync(int entityId)
         => _entityManager.RemoveEntityWithStateAsync(entityId);
 
+    public Task AddPropertyToEntityAsync(int entityId, string propertyType, object initialValue)
+        => _entityManager.AddPropertyToEntityWithStateAsync(entityId, propertyType, initialValue);
+
+    public async Task RemovePropertyFromEntityAsync(int entityId, string propertyType)
+    {
+        // Value must be removed from the state repository before EntityManager's index-shifting bookkeeping runs.
+        await _stateManager.RemovePropertyAsync(propertyType, entityId);
+        _entityManager.RemovePropertyFromEntity(entityId, propertyType);
+    }
+
     public Task OneStepAsync()
         => _serviceManager.ExecuteOneStepAsync();
 

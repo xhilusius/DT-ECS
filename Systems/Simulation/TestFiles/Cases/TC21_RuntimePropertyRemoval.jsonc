@@ -1,0 +1,25 @@
+{
+  "name": "Runtime property removal: WindForce stripped mid-simulation",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "DefaultSetup",
+  "description": "Spawns a ball with wind force, then removes the WindForce property mid-run so only gravity+drag continue to act",
+  "headerLines": [
+    "TEST CASE 21: Runtime Property Removal",
+    "Ball starts with gravity + drag + wind",
+    "At step 50, WindForce property is removed — only gravity + drag remain"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Ball_GravityDragWind", "properties": { "Position": [-2, 50, 0], "Color": "DeepSkyBlue", "Mass": 1.0, "Radius": 1.0 } }
+      ]
+    },
+    {
+      "step": 50,
+      "actions": [
+        { "type": "removeproperty", "entity": "Ball_GravityDragWind", "properties": { "EntityId": 0, "PropertyType": "WindForce" } }
+      ]
+    }
+  ]
+}
