@@ -54,6 +54,8 @@ public class VisualizationMapper
     private readonly string _visualizationClearEndpoint;
     private readonly string _visualizationRemoveEndpoint;
 
+    public bool IncludeTimestamp { get; set; }
+
     /// <summary>
     /// Optional external receiver for visualization updates.
     /// When null, only HTTP requests are sent (typical for production with Godot).
@@ -257,8 +259,22 @@ public class VisualizationMapper
     {
         try
         {
+            object payload = updates;
+            if (IncludeTimestamp)
+            {
+                var timestamp = DateTime.UtcNow;
+                payload = updates.Select(update => new
+                {
+                    update.EntityId,
+                    update.Position,
+                    update.Radius,
+                    update.Color,
+                    Timestamp = timestamp
+                }).ToList();
+            }
+
             // Serialize BallUpdate list to JSON with camelCase property names
-            var json = JsonSerializer.Serialize(updates, new JsonSerializerOptions
+            var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,

@@ -118,6 +118,9 @@ public class CompositeServiceSetup
     [JsonPropertyName("timeStep")]
     public required TimeStepConfig TimeStep { get; set; }
 
+    [JsonPropertyName("includeTimeStamp")]
+    public bool IncludeTimestamp { get; set; }
+
     /// <summary>
     /// Execution batches: each inner list is a batch where all models can run in parallel.
     /// Models execute in batch order (batch 0, then batch 1, etc.).

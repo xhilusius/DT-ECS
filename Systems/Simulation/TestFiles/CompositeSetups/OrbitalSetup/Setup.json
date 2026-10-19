@@ -2,9 +2,10 @@
   "name": "Orbital Mechanics Simulation",
   "description": "N-body gravitational simulation for celestial mechanics (Moon-Earth-Sun system) - no atmospheric effects",
   "timeStep": {
-    "value": 3600,
+    "value": 1800,
     "unit": "s"
   },
+  "includeTimeStamp": true,
   "parallel": false,
   "stepDelayMs": 5,
   "simulationSteps": 3000,

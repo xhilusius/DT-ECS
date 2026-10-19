@@ -119,6 +119,10 @@ public class ServiceManager : IInnerServiceFactory
         if (string.IsNullOrWhiteSpace(setupName))
             throw new ArgumentException("Setup name cannot be null or empty", nameof(setupName));
 
+        var setup = CompositeServiceSetupLoader.LoadConfiguration(setupName);
+        if (_visualizationMapper != null)
+            _visualizationMapper.IncludeTimestamp = setup.IncludeTimestamp;
+
         var repositoryManager = new RepositoryManager();
         var entityManager = new EntityManager();
         var stateManager = new StateManager(repositoryManager, entityManager);
@@ -135,7 +139,6 @@ public class ServiceManager : IInnerServiceFactory
         var innerServiceManager = new ServiceManager(transformExecutor);
         await innerServiceManager.InitializeAsync(setupName);
 
-        var setup = CompositeServiceSetupLoader.LoadConfiguration(setupName);
         var timeStepSeconds = (double)CompositeServiceSetupLoader.GetTimeStepSeconds(setup.TimeStep);
         return new InnerService(innerServiceManager, entityManager, stateManager, setup.SimulationSteps, timeStepSeconds);
     }
