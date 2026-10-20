@@ -23,7 +23,7 @@
 
   "name": "Solar system and multi-constellation satellites",
   "outerSetup": "SimulationRunSetup",
-  "innerSetup": "SatelliteSetup",
+  "innerSetup": "OrbitalFixed",
   "description": "Sun, Mercury, Venus, Earth, Moon, Mars, and the TC18 multi-constellation satellite field in a Sun-centered frame. Planet and satellite positions use SI meters; satellite collision radii retain TC18 mock values.",
   "headerLines": [
     "TEST CASE 24: Solar System and Multi-Constellation Satellites",

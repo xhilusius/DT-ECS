@@ -29,6 +29,9 @@ public class TransformServiceFactory
             "MagnetismModel" => new MagnetismModel(timeStepSeconds),
             "WindForceModel" => new WindForceModel(),
             "PhysicsIntegrator" => new PhysicsIntegrator(timeStepSeconds),
+            "VelocityVerletPredictor" => new VelocityVerletPredictor(timeStepSeconds),
+            "VelocityVerletCorrector" => new VelocityVerletCorrector(timeStepSeconds),
+            "NBodyGravityAfterPosition" => new NBodyGravityModel(timeStepSeconds),
             "PositionModel" => new PositionModel(),
             "CollisionDetectionModel" => new CollisionDetectionModel(),
             _ => throw new ArgumentException($"Unknown simulation model: {modelName}")

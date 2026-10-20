@@ -1,0 +1,40 @@
+{
+  "name": "Orbital Mechanics with Velocity-Verlet Integration",
+  "description": "N-body orbital simulation using velocity-Verlet integration for improved long-term orbital stability.",
+  "timeStep": {
+    "value": 60,
+    "unit": "s"
+  },
+  "includeTimeStamp": true,
+  "parallel": false,
+  "stepDelayMs": 3,
+  "simulationSteps": 15000,
+  "simulationModels": [
+    {
+      "name": "NBodyGravityModel",
+      "inputProperties": ["Mass", "Position", "GravityForce"],
+      "outputProperties": ["GravityForce"]
+    },
+    {
+      "name": "VelocityVerletPredictor",
+      "inputProperties": ["Mass", "Position", "CurrentSpeed", "GravityForce", "PreviousAcceleration"],
+      "outputProperties": ["Position", "PreviousAcceleration"]
+    },
+    {
+      "name": "NBodyGravityAfterPosition",
+      "inputProperties": ["Mass", "Position", "GravityForce"],
+      "outputProperties": ["GravityForce"]
+    },
+    {
+      "name": "VelocityVerletCorrector",
+      "inputProperties": ["Mass", "CurrentSpeed", "GravityForce", "PreviousAcceleration"],
+      "outputProperties": ["CurrentSpeed"]
+    }
+  ],
+  "executionBatches": [
+    ["NBodyGravityModel"],
+    ["VelocityVerletPredictor"],
+    ["NBodyGravityAfterPosition"],
+    ["VelocityVerletCorrector"]
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "propertyUnits": {
+    "Mass": "kg",
+    "Position": "m",
+    "CurrentSpeed": "m/s",
+    "Radius": "m",
+    "GravityForce": "N",
+    "PreviousAcceleration": "m/s^2"
+  },
+  "propertyVisibility": {
+    "alwaysShow": [
+      "Position",
+      "CurrentSpeed"
+    ],
+    "showOnce": [
+      "Mass",
+      "Radius"
+    ],
+    "intermediate": [
+      "GravityForce",
+      "PreviousAcceleration"
+    ]
+  }
+}

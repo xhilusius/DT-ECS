@@ -11,7 +11,7 @@
 
   "name": "Solar system and reduced satellite constellation",
   "outerSetup": "SimulationRunSetup",
-  "innerSetup": "SatelliteSetup",
+  "innerSetup": "OrbitalFixed",
   "description": "Sun, Mercury, Venus, Earth, Moon, Mars, and the reduced 21-satellite TC19 constellation in a Sun-centered frame. Planet and satellite positions use SI meters; satellite collision radii retain TC19 mock values.",
   "headerLines": [
     "TEST CASE 25: Solar System and Reduced Satellite Constellation",
