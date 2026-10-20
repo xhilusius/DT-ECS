@@ -1,0 +1,31 @@
+{
+  // TEST CASE 26: Solar System Planets and Earth's Moon
+  //
+  // Uses the same Sun-centered planetary initial conditions as TC24 and TC25,
+  // but runs with OrbitalSetup and contains no satellites.
+  // Initial velocities are approximate circular-orbit speeds around the Sun.
+
+  "name": "Orbital setup: solar system planets and Earth's Moon",
+  "outerSetup": "SimulationRunSetup",
+  "innerSetup": "OrbitalSetup",
+  "description": "Sun, Mercury, Venus, Earth, Earth's Moon, and Mars in a Sun-centered N-body simulation. Uses the same planetary initial conditions as TC24 and TC25, with no satellites.",
+  "headerLines": [
+    "TEST CASE 26: Solar System Planets and Earth's Moon",
+    "Sun at origin; Mercury, Venus, Earth, and Mars in orbital order",
+    "Earth at 1 AU with its Moon; no satellites",
+    "OrbitalSetup: 1,800-second timestep, 30,000 configured steps"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "actions": [
+        { "type": "spawn", "entity": "Sun" },
+        { "type": "spawn", "entity": "Mercury", "properties": { "Position": [57909050000, 0, 0], "CurrentSpeed": [0, 47872, 0] } },
+        { "type": "spawn", "entity": "Venus", "properties": { "Position": [108208000000, 0, 0], "CurrentSpeed": [0, 35021, 0] } },
+        { "type": "spawn", "entity": "Earth_ball", "properties": { "Position": [149600000000, 0, 0], "CurrentSpeed": [0, 29780, 0] } },
+        { "type": "spawn", "entity": "Moon", "properties": { "Position": [149984400000, 0, 0], "CurrentSpeed": [0, 30802, 0] } },
+        { "type": "spawn", "entity": "Mars", "properties": { "Position": [227939200000, 0, 0], "CurrentSpeed": [0, 24129, 0] } }
+      ]
+    }
+  ]
+}

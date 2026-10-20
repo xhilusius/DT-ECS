@@ -25,6 +25,9 @@
     "Cases/TC20_MultiConstellationWhatIf.jsonc",
     "Cases/TC21_RuntimePropertyRemoval.jsonc",
     "Cases/TC22_RuntimePropertyAddition.jsonc",
-    "Cases/TC23_RuntimeSunIntroduction.jsonc"
+    "Cases/TC23_RuntimeSunIntroduction.jsonc",
+    "Cases/TC24_SolarSystemSatelliteConstellation.jsonc",
+    "Cases/TC25_SolarSystemReducedSatelliteConstellation.jsonc",
+    "Cases/TC26_OrbitalSolarSystemPlanets.jsonc"
   ]
 }

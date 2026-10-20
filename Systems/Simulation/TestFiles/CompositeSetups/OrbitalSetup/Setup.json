@@ -8,7 +8,7 @@
   "includeTimeStamp": true,
   "parallel": false,
   "stepDelayMs": 5,
-  "simulationSteps": 3000,
+  "simulationSteps": 30000,
 
   "simulationModels": [
     {

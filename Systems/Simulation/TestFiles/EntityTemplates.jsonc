@@ -79,6 +79,48 @@
         "Color": "Yellow"
       }
     },
+    "Mercury": {
+      "name": "Mercury",
+      "description": "Planet Mercury - N-body gravity only",
+      "properties": {
+        "Mass": 3.3011e23,
+        "Position": [0, 0, 0],
+        "Displacement": [0, 0, 0],
+        "CurrentSpeed": [0, 0, 0],
+        "Radius": 2.4397e6,
+        "GravityForce": [0, 0, 0],
+        "Visualize": true,
+        "Color": "Gray"
+      }
+    },
+    "Venus": {
+      "name": "Venus",
+      "description": "Planet Venus - N-body gravity only",
+      "properties": {
+        "Mass": 4.8675e24,
+        "Position": [0, 0, 0],
+        "Displacement": [0, 0, 0],
+        "CurrentSpeed": [0, 0, 0],
+        "Radius": 6.0518e6,
+        "GravityForce": [0, 0, 0],
+        "Visualize": true,
+        "Color": "White"
+      }
+    },
+    "Mars": {
+      "name": "Mars",
+      "description": "Planet Mars - N-body gravity only",
+      "properties": {
+        "Mass": 6.4171e23,
+        "Position": [0, 0, 0],
+        "Displacement": [0, 0, 0],
+        "CurrentSpeed": [0, 0, 0],
+        "Radius": 3.3895e6,
+        "GravityForce": [0, 0, 0],
+        "Visualize": true,
+        "Color": "Red"
+      }
+    },
     "Sun_NoMass": {
       "name": "Sun",
       "description": "The Sun, present in the scene but without Mass, so NBodyGravityModel excludes it entirely (neither attracts nor is attracted) until Mass is added at runtime.",

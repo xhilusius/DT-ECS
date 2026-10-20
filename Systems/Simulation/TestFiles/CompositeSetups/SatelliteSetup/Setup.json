@@ -2,12 +2,13 @@
   "name": "Satellite Collision Detection",
   "description": "LEO satellite simulation with N-body gravity and inter-satellite collision detection. Satellites orbit at 400 km altitude. Earth is included as a gravitational source (fixed in practice — planet-scale mass). CollisionDetectionModel runs after PositionModel to check updated positions each step.",
   "timeStep": {
-    "value": 1,
+    "value": 60,
     "unit": "s"
   },
   "parallel": false,
-  "stepDelayMs": 2,
-  "simulationSteps": 1500,
+  "stepDelayMs": 5,
+  "simulationSteps": 15000,
+  "includeTimeStamp": true,
 
   "simulationModels": [
     {
